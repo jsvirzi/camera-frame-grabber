@@ -9,5 +9,6 @@ set(CMAKE_CXX_STANDARD 14)
 
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
-add_executable(frame_grabber src/main.cpp )
+add_executable(frame_grabber src/main.cpp)
+add_executable(v4l src/v4l-xface.c)
 target_link_libraries(frame_grabber ${OpenCV_LIBS})
