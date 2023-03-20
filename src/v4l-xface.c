@@ -91,7 +91,7 @@ static int read_frame(void)
     unsigned int i;
 
     switch (io) {
-    
+
     case IO_METHOD_READ:
         if (-1 == read(fd, buffers[0].start, buffers[0].length)) {
             switch (errno) {
