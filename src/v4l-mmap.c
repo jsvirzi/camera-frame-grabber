@@ -173,7 +173,7 @@ static int init_device(v4l_client *client)
     return SUCCESS;
 }
 
-static void start_capturing(v4l_client *client)
+static void arm_capture(v4l_client *client)
 {
     for (unsigned int i = 0; i < client->n_buffers; ++i) {
         struct v4l2_buffer buf;
@@ -316,47 +316,30 @@ static int read_frame(v4l_client *client)
 {
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof (buf));
-
-    /* mmap */
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
 
-    if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
-        if (errno == EAGAIN) { return FAILURE; }
-        else { return ERROR; }
+    if (client->io_method == IO_METHOD_MMAP) {
+        buf.memory = V4L2_MEMORY_MMAP;
+        if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
+            if (errno == EAGAIN) { return FAILURE; }
+            else { return ERROR; }
+        }
+        assert(buf.index < client->n_buffers);
+        process_image(client, client->buffers[buf.index].start, buf.bytesused);
+    } else if (client->io_method == IO_METHOD_USERPTR) {
+        buf.memory = V4L2_MEMORY_USERPTR;
+        if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
+            if (errno == EAGAIN) { return SUCCESS; }
+            else { return FAILURE; }
+        }
+        unsigned int i;
+        for (i = 0; i < client->n_buffers; ++i) {
+            if (buf.m.userptr == (unsigned long) client->buffers[i].start && buf.length == client->buffers[i].length) { break; }
+        }
+        assert(i < client->n_buffers);
+        process_image(client, (void *) buf.m.userptr, buf.bytesused);
     }
-
-    assert(buf.index < client->n_buffers);
-
-    process_image(client, client->buffers[buf.index].start, buf.bytesused);
-
     if (xioctl(client->fd, VIDIOC_QBUF, &buf) < 0) { errno_exit("VIDIOC_QBUF"); }
-
-#if 0
-
-    /* userptr */
-
-    unsigned int i;
-
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_USERPTR;
-
-    if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
-        if (errno == EAGAIN) { return XXX; }
-        else { return FAILURE; }
-    }
-
-    for (i = 0; i < client->n_buffers; ++i) {
-        if (buf.m.userptr == (unsigned long) client->buffers[i].start && buf.length == client->buffers[i].length) { break; }
-    }
-
-    assert(i < client->n_buffers);
-
-    process_image((void *)buf.m.userptr, buf.bytesused);
-
-    if (xioctl(client->fd, VIDIOC_QBUF, &buf) < 0) { errno_exit("VIDIOC_QBUF"); }
-
-#endif
 
     return SUCCESS;
 }
@@ -472,12 +455,18 @@ int main(int argc, char **argv) {
     client.dev_name = "/dev/video2";
     open_device(&client);
     init_device(&client);
-    start_capturing(&client);
+    arm_capture(&client);
     init_stack(&client);
 
+    client.run = 1;
+
+    unsigned int last_report = client.frame_number;
     while (client.frame_number < client.frame_max_count) {
         if ((client.frame_number % 10) == 0) {
-            fprintf(stdout, "%d frames\n", client.frame_number);
+            if (client.frame_number != last_report) {
+                fprintf(stdout, "%d frames\n", client.frame_number);
+                last_report = client.frame_number;
+            }
         }
     }
 
