@@ -19,6 +19,7 @@ typedef struct {
     int run;
     int rows;
     int cols;
+    int bytes_per_pixel;
     void *image_process_stack;
     pthread_t thread_id;
     char thread_name[32];

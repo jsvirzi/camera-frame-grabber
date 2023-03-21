@@ -61,6 +61,9 @@ static int close_device(v4l_client *client);
 static int init_stack(v4l_client *client);
 static int close_stack(v4l_client *client);
 
+int image_process_stack_initialize(unsigned int rows, unsigned int cols);
+void image_process_stack_process_image(void *data, unsigned int size);
+
 static int delay_us(unsigned int microseconds)
 {
     struct timeval tv;
@@ -163,6 +166,10 @@ static int init_device(v4l_client *client)
     min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
     if (fmt.fmt.pix.sizeimage < min)
         fmt.fmt.pix.sizeimage = min;
+
+    client->rows = fmt.fmt.pix.height;
+    client->cols = fmt.fmt.pix.width;
+    client->bytes_per_pixel = fmt.fmt.pix.bytesperline / client->cols;
 
     if (client->io_method == IO_METHOD_MMAP) {
         init_mmap(client);
@@ -303,6 +310,7 @@ static int init_userp(v4l_client *client, unsigned int buffer_size)
 static int process_image(v4l_client *client, const void *p, int size)
 {
     ++client->frame_number;
+    image_process_stack_process_image(p, size);
     char filename[15];
     sprintf(filename, "frame-%d.raw", client->frame_number);
     FILE *fp = fopen(filename,"wb");
@@ -426,6 +434,7 @@ static int uninit_device(v4l_client *client)
 
 static int init_stack(v4l_client *client)
 {
+    image_process_stack_initialize(client->rows, client->cols);
     client->run = 0;
     client->thread_started = 0;
     int status = pthread_create(&client->thread_id, NULL, v4l_looper, client);
@@ -451,8 +460,10 @@ int main(int argc, char **argv) {
     memset(&client, 0, sizeof (client));
     client.rows = 1280;
     client.cols = 1440;
+    client.rows = 480;
+    client.cols = 640;
     client.frame_max_count = 200;
-    client.dev_name = "/dev/video2";
+    client.dev_name = "/dev/video0";
     open_device(&client);
     init_device(&client);
     arm_capture(&client);
