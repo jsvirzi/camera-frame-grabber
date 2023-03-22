@@ -23,6 +23,7 @@
 #include <sys/ioctl.h>
 #include <linux/videodev2.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #include "v4l-mmap.h"
 
@@ -167,6 +168,8 @@ static int init_device(v4l_client *client)
     if (fmt.fmt.pix.sizeimage < min)
         fmt.fmt.pix.sizeimage = min;
 
+    uint32_t word = fmt.fmt.pix.pixelformat;
+    printf("pixel format = %c%c%c%c\n", (word >> 0x18) & 0xff, (word >> 0x10) & 0xff, (word >> 0x08) & 0xff, (word >> 0x00) & 0xff);
     client->type = fmt.type;
     client->rows = fmt.fmt.pix.height;
     client->cols = fmt.fmt.pix.width;
@@ -433,12 +436,8 @@ static int close_stack(v4l_client *client)
 int main(int argc, char **argv) {
     v4l_client client;
     memset(&client, 0, sizeof (client));
-    client.rows = 1280;
-    client.cols = 1440;
-    client.rows = 480;
-    client.cols = 640;
     client.frame_max_count = 200;
-    client.dev_name = "/dev/video0";
+    client.dev_name = "/dev/video2";
     open_device(&client);
     init_device(&client);
     arm_capture(&client);
@@ -446,8 +445,9 @@ int main(int argc, char **argv) {
 
     client.run = 1;
 
+    client.frame_max_count = 0;
     unsigned int last_report = client.frame_number;
-    while (client.frame_number < client.frame_max_count) {
+    while ((client.frame_max_count == 0) || client.frame_number < client.frame_max_count) {
         if ((client.frame_number % 10) == 0) {
             if (client.frame_number != last_report) {
                 fprintf(stdout, "%d frames\n", client.frame_number);

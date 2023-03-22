@@ -36,17 +36,26 @@ extern "C" {
     void image_process_stack_process_image(void const * const data, unsigned int size)
     {
         unsigned int type = (size / (stack->rows * stack->cols) == 1) ? CV_8U : CV_16U;
+#if 1
         uint8_t *buff = stack->buff;
         uint8_t *p = (uint8_t *) data;
         unsigned int index = 0;
-        for (int i = 0; i < stack->cols; ++i) {
-            for (int j = 0; j < stack->rows; ++j) {
+        for (int i = 0; i < stack->rows; ++i) {
+            for (int j = 0; j < stack->cols; ++j) {
                 buff[index++] = *p++;
                 ++p;
             }
         }
-        // cv::Mat mat(stack->rows, stack->cols, type, data);
         cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
+#endif
+        // cv::Mat mat(stack->rows, stack->cols, type, data);
+
+#if 0
+        uint8_t *buff = (uint8_t *) data;
+        cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
+#endif
+
+        // cv::Mat mat(stack->rows, stack->cols, CV_8U, (uint8_t *) data);
         cv::imshow(stack->window_name, mat);
         if(cv::waitKey(200) >= 0) { ; }
     }
