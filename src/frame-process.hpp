@@ -16,6 +16,10 @@ public:
     void process_image(void *data, unsigned int size);
     unsigned int rows;
     unsigned int cols;
+    unsigned int type;
+    const char *window_name;
+    uint8_t *buff;
+    ssize_t buff_size;
 };
 
 #endif

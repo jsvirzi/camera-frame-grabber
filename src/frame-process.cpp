@@ -20,30 +20,34 @@ ImageProcessStack *stack;
 
 extern "C" {
 
-    int image_process_stack_initialize(unsigned int rows, unsigned int cols)
+    int image_process_stack_initialize(unsigned int rows, unsigned int cols, unsigned int type)
     {
         stack = new ImageProcessStack;
-        cv::namedWindow("the-window", 1);
+        stack->window_name = "image";
+        cv::namedWindow(stack->window_name, 1);
         stack->rows = rows;
         stack->cols = cols;
+        stack->type = type;
+        stack->buff_size = rows * cols * 4; /* TODO will this always suffice? */
+        stack->buff = new uint8_t [stack->buff_size];
         return 0;
     }
 
-    void image_process_stack_process_image(void *data, unsigned int size)
+    void image_process_stack_process_image(void const * const data, unsigned int size)
     {
         unsigned int type = (size / (stack->rows * stack->cols) == 1) ? CV_8U : CV_16U;
-        static uint8_t buff[640 * 480];
+        uint8_t *buff = stack->buff;
         uint8_t *p = (uint8_t *) data;
         unsigned int index = 0;
-        for (int i = 0; i < 640; ++i) {
-            for (int j = 0; j < 480; ++j) {
+        for (int i = 0; i < stack->cols; ++i) {
+            for (int j = 0; j < stack->rows; ++j) {
                 buff[index++] = *p++;
                 ++p;
             }
         }
         // cv::Mat mat(stack->rows, stack->cols, type, data);
         cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
-        cv::imshow("the-window", mat);
+        cv::imshow(stack->window_name, mat);
         if(cv::waitKey(200) >= 0) { ; }
     }
 

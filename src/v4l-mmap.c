@@ -61,8 +61,8 @@ static int close_device(v4l_client *client);
 static int init_stack(v4l_client *client);
 static int close_stack(v4l_client *client);
 
-int image_process_stack_initialize(unsigned int rows, unsigned int cols);
-void image_process_stack_process_image(void *data, unsigned int size);
+int image_process_stack_initialize(unsigned int rows, unsigned int cols, unsigned int type);
+void image_process_stack_process_image(void const * const data, unsigned int size);
 
 static int delay_us(unsigned int microseconds)
 {
@@ -167,9 +167,10 @@ static int init_device(v4l_client *client)
     if (fmt.fmt.pix.sizeimage < min)
         fmt.fmt.pix.sizeimage = min;
 
+    client->type = fmt.type;
     client->rows = fmt.fmt.pix.height;
     client->cols = fmt.fmt.pix.width;
-    client->bytes_per_pixel = fmt.fmt.pix.bytesperline / client->cols;
+    client->bytes_per_pixel = fmt.fmt.pix.sizeimage / (client->cols * client->rows);
 
     if (client->io_method == IO_METHOD_MMAP) {
         init_mmap(client);
@@ -180,7 +181,7 @@ static int init_device(v4l_client *client)
     return SUCCESS;
 }
 
-static void arm_capture(v4l_client *client)
+static int arm_capture(v4l_client *client)
 {
     for (unsigned int i = 0; i < client->n_buffers; ++i) {
         struct v4l2_buffer buf;
@@ -199,36 +200,10 @@ static void arm_capture(v4l_client *client)
         if (xioctl(client->fd, VIDIOC_QBUF, &buf) < 0) { errno_exit("VIDIOC_QBUF"); }
     }
 
-#if 0
-    if (client->io_method == IO_METHOD_MMAP) {
-        for (unsigned int i = 0; i < client->n_buffers; ++i) {
-            struct v4l2_buffer buf;
-            memset(&buf, 0, sizeof (buf));
-
-            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buf.memory = V4L2_MEMORY_MMAP;
-            buf.index = i;
-
-            if (-1 == xioctl(client->fd, VIDIOC_QBUF, &buf)){ errno_exit("VIDIOC_QBUF"); }
-        }
-    } else if (client->io_method == IO_METHOD_USERPTR) {
-        for (unsigned int i = 0; i < client->n_buffers; ++i) {
-            struct v4l2_buffer buf;
-            memset(&buf, 0, sizeof (buf));
-
-            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buf.memory = V4L2_MEMORY_USERPTR;
-            buf.index = i;
-            buf.m.userptr = (unsigned long) client->buffers[i].start;
-            buf.length = client->buffers[i].length;
-
-            if (-1 == xioctl(client->fd, VIDIOC_QBUF, &buf)) { errno_exit("VIDIOC_QBUF"); }
-        }
-    }
-#endif
-
     enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (xioctl(client->fd, VIDIOC_STREAMON, &type) < 0) { errno_exit("VIDIOC_STREAMON"); }
+
+    return SUCCESS;
 }
 
 static int init_mmap(v4l_client *client)
@@ -307,7 +282,7 @@ static int init_userp(v4l_client *client, unsigned int buffer_size)
     }
 }
 
-static int process_image(v4l_client *client, const void *p, int size)
+static int process_image(v4l_client *client, void const * const p, int size)
 {
     ++client->frame_number;
     image_process_stack_process_image(p, size);
@@ -434,7 +409,7 @@ static int uninit_device(v4l_client *client)
 
 static int init_stack(v4l_client *client)
 {
-    image_process_stack_initialize(client->rows, client->cols);
+    image_process_stack_initialize(client->rows, client->cols, client->type);
     client->run = 0;
     client->thread_started = 0;
     int status = pthread_create(&client->thread_id, NULL, v4l_looper, client);
