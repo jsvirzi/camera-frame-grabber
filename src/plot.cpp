@@ -1,23 +1,41 @@
 #include "plot.hpp"
 
-Plot::Plot() {
+void Plot::setup(int n) {
+    n_data = 0;
+    n_points = n;
     x_min =  999999999.0;
     x_max = -999999999.0;
     y_min =  999999999.0;
     y_max = -999999999.0;
-    n_points = 0;
-    n_x = 100;
-    n_y = 100;
     n_axes = 0;
     x_margin = 0.1;
     y_margin = 0.1;
     x_target_window = 0.5;
     y_target_window = 0.5;
+    p_x = new double [ n_points ];
+    p_y = new double [ n_points ];
+    for (int i = 0; i < n_points; ++i) {
+        p_x[i] = 0.0;
+        p_y[i] = 0.0;
+    }
+}
+
+Plot::Plot() {
+    setup(16);
+}
+
+Plot::Plot(int n) {
+    setup(n);
 }
 
 void Plot::register_point(double x, double y)
 {
     n_axes = 2;
+    x_new = x;
+    y_new = y;
+    p_x[(n_data % n_points)] = x;
+    p_y[(n_data % n_points)] = y;
+    ++n_data;
     if (x < x_min) { x_min = x; }
     if (x > x_max) { x_max = x; }
     if (y < y_min) { y_min = y; }
@@ -27,6 +45,9 @@ void Plot::register_point(double x, double y)
 void Plot::register_point(double x)
 {
     n_axes = 1;
+    x_new = x;
+    p_x[(n_data % n_points)] = x;
+    ++n_data;
     if (x < x_min) { x_min = x; }
     if (x > x_max) { x_max = x; }
 }

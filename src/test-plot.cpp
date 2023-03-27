@@ -7,6 +7,7 @@
 #include <TLatex.h>
 #include <TText.h>
 #include <TLine.h>
+#include <TRandom3.h>
 
 #include <pthread.h>
 
@@ -16,18 +17,45 @@
 
 #include "plot.hpp"
 
-TText *g_text = 0;
-int iter = 0;
+class LooperInfo {
+public:
+    TText *g_text;
+    int iter;
+    int run;
+    Plot *plot;
+    LooperInfo(int n_points = 16);
+};
 
-void *app_looper(void *argv)
+LooperInfo::LooperInfo(int n_points) {
+    plot = new Plot(n_points);
+    g_text = 0;
+    iter = 0;
+    run = 0;
+}
+
+void *app_looper(void *arg)
 {
-    while (1) {
+    LooperInfo *looper_info = (LooperInfo *) arg;
+    while (looper_info->run) {
         sleep(1);
-        printf("iter = %d\n", ++iter);
-        if (iter >= 1) {
-            g_text = new TText(0.0, 0.0, "hello");
-            g_text->Draw();
+        printf("iter = %d\n", ++looper_info->iter);
+        if (looper_info->iter >= 1) {
+            looper_info->g_text = new TText(0.0, 0.0, "hello");
+            looper_info->g_text->Draw();
         }
+    }
+
+    return 0;
+}
+
+void *img_looper(void *arg)
+{
+    LooperInfo *looper_info = (LooperInfo *) arg;
+    TRandom3 *rndm = new TRandom3(0);
+    while (looper_info->run) {
+        sleep(1);
+        double x = rndm->Uniform(220.0, 250.0);
+        looper_info->plot->register_point(x);
     }
 
     return 0;
@@ -35,28 +63,34 @@ void *app_looper(void *argv)
 
 int main(int argc, char **argv)
 {
+    int n_x = 16;
+    LooperInfo looper_info(n_x);
     // TApplication app = TApplication("app", &argc, argv);
     TApplication app("app", &argc, argv);
     TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
 
     double x = -5.0;
-    int n_x = 16;
     int head = 0;
     int mask = n_x - 1;
-    double *graph_x = new double[16];
-    double *graph_y = new double[16];
+//    double *graph_x = new double[n_x];
+//    double *graph_y = new double[n_x];
+    double *graph_x = looper_info.plot->get_x();
+    double *graph_y = looper_info.plot->get_y();
     double latest_x[1];
     double latest_y[1];
 
-    pthread_t tid;
+    pthread_t tid_app;
+    pthread_t tid_img;
 
-    pthread_create(&tid, NULL, app_looper, 0);
-    double x_axis_min = -1.25;
-    double x_axis_max =  1.25;
+    looper_info.run = 1;
+    pthread_create(&tid_app, NULL, app_looper, &looper_info);
+    pthread_create(&tid_img, NULL, img_looper, &looper_info);
+
+    double x_axis_min = 200.0;
+    double x_axis_max = 260.0;
     double y_axis_min = 0.0;
     double y_axis_max = 1.0;
 
-    // TF1 *f1 = new TF1("f1","sin(x)", x, x + 10);
     TGraph *g_history = new TGraph(n_x, graph_x, graph_y);
     g_history->SetName("g_history");
     g_history->SetMarkerColor(kBlue);
@@ -65,7 +99,7 @@ int main(int argc, char **argv)
     g_history->SetMaximum(y_axis_max);
     g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
-    latest_y[0] = 0.5;
+    latest_y[0] = 0.0;
     TGraph *g_newest = new TGraph(1, latest_x, latest_y);
     g_newest->SetMarkerStyle(kFullCircle);
 
@@ -81,15 +115,15 @@ int main(int argc, char **argv)
             g_newest->SetMarkerColor(kRed);
         }
 
-        for (int i = 0; i < n_x; ++i) {
-            double phase = x + 0.1;
-            graph_x[i] = sin(phase + i * 0.1);
-            graph_y[i] = 0.5;
-        }
+//        for (int i = 0; i < n_x; ++i) {
+//            double phase = x + 0.1;
+//            graph_x[i] = sin(phase + i * 0.1);
+//            graph_y[i] = 0.5;
+//        }
+//
+//        x = x + 0.1;
 
-        x = x + 0.1;
-
-        latest_x[0] = graph_x[0];
+        latest_x[0] = looper_info.plot->x_new;
         g_newest->SetPoint(0, latest_x[0], latest_y[0]);
 
         for (int i = 0; i < n_x; ++i) {
@@ -101,9 +135,12 @@ int main(int argc, char **argv)
         g_history->Draw("ap");
         g_newest->Draw("p");
 
-        double x0 = graph_x[0];
-        TLine line_xmin(x0 - 0.05, y_axis_min, x0 - 0.05, y_axis_max);
-        TLine line_xmax(x0 + 0.05, y_axis_min, x0 + 0.05, y_axis_max);
+        looper_info.plot->render();
+
+        double x_line_min = looper_info.plot->x_line_target_min;
+        double x_line_max = looper_info.plot->x_line_target_max;
+        TLine line_xmin(x_line_min, y_axis_min, x_line_min, y_axis_max);
+        TLine line_xmax(x_line_max, y_axis_min, x_line_max, y_axis_max);
         line_xmin.SetLineColor(kRed);
         line_xmin.SetLineStyle(kDotted);
         line_xmin.SetLineWidth(3.0);
@@ -119,7 +156,7 @@ int main(int argc, char **argv)
 
         c->WaitPrimitive();
         ++i;
-        iter = 0;
+        looper_info.iter = 0;
     }
 
     TRootCanvas *rc = (TRootCanvas *) c->GetCanvasImp();
