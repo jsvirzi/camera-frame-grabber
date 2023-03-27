@@ -56,6 +56,7 @@ void *img_looper(void *arg)
         sleep(1);
         double x = rndm->Uniform(220.0, 250.0);
         looper_info->plot->register_point(x);
+        printf("new data(%d) = %f\n", looper_info->plot->n_data, x);
     }
 
     return 0;
@@ -130,12 +131,14 @@ int main(int argc, char **argv)
             g_history->SetPoint(i, graph_x[i], graph_y[i]);
         }
 
+        looper_info.plot->render();
+
+        x_axis_min = looper_info.plot->x_min_plot;
+        x_axis_max = looper_info.plot->x_max_plot;
         g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
         g_history->Draw("ap");
         g_newest->Draw("p");
-
-        looper_info.plot->render();
 
         double x_line_min = looper_info.plot->x_line_target_min;
         double x_line_max = looper_info.plot->x_line_target_max;

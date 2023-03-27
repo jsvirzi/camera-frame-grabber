@@ -8,10 +8,10 @@ void Plot::setup(int n) {
     y_min =  999999999.0;
     y_max = -999999999.0;
     n_axes = 0;
-    x_margin = 0.1;
-    y_margin = 0.1;
-    x_target_window = 0.5;
-    y_target_window = 0.5;
+    x_margin = 0.2;
+    y_margin = 0.2;
+    x_target_window = 0.1;
+    y_target_window = 0.1;
     p_x = new double [ n_points ];
     p_y = new double [ n_points ];
     for (int i = 0; i < n_points; ++i) {
@@ -46,7 +46,8 @@ void Plot::register_point(double x)
 {
     n_axes = 1;
     x_new = x;
-    p_x[(n_data % n_points)] = x;
+    int idx = n_data % n_points;
+    p_x[idx] = x;
     ++n_data;
     if (x < x_min) { x_min = x; }
     if (x > x_max) { x_max = x; }
@@ -60,7 +61,7 @@ void Plot::render()
         x_min_plot = x_min - x_delta;
         x_max_plot = x_max + x_delta;
         x_delta = x_interval * x_target_window;
-        x_line_target_min = x_min - x_delta;
+        x_line_target_min = x_max - x_delta;
         x_line_target_max = x_max + x_delta;
     }
 }
