@@ -66,15 +66,9 @@ int main(int argc, char **argv)
 {
     int n_x = 16;
     LooperInfo looper_info(n_x);
-    // TApplication app = TApplication("app", &argc, argv);
     TApplication app("app", &argc, argv);
     TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
 
-    double x = -5.0;
-    int head = 0;
-    int mask = n_x - 1;
-//    double *graph_x = new double[n_x];
-//    double *graph_y = new double[n_x];
     double *graph_x = looper_info.plot->get_x();
     double *graph_y = looper_info.plot->get_y();
     double latest_x[1];
@@ -87,8 +81,8 @@ int main(int argc, char **argv)
     pthread_create(&tid_app, NULL, app_looper, &looper_info);
     pthread_create(&tid_img, NULL, img_looper, &looper_info);
 
-    double x_axis_min = 200.0;
-    double x_axis_max = 260.0;
+//    double x_axis_min = 200.0;
+//    double x_axis_max = 260.0;
     double y_axis_min = 0.0;
     double y_axis_max = 1.0;
 
@@ -98,7 +92,7 @@ int main(int argc, char **argv)
     g_history->SetMarkerStyle(kOpenCircle);
     g_history->SetMinimum(y_axis_min);
     g_history->SetMaximum(y_axis_max);
-    g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
+//    g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
     latest_y[0] = 0.0;
     TGraph *g_newest = new TGraph(1, latest_x, latest_y);
@@ -116,14 +110,6 @@ int main(int argc, char **argv)
             g_newest->SetMarkerColor(kRed);
         }
 
-//        for (int i = 0; i < n_x; ++i) {
-//            double phase = x + 0.1;
-//            graph_x[i] = sin(phase + i * 0.1);
-//            graph_y[i] = 0.5;
-//        }
-//
-//        x = x + 0.1;
-
         latest_x[0] = looper_info.plot->x_new;
         g_newest->SetPoint(0, latest_x[0], latest_y[0]);
 
@@ -133,8 +119,8 @@ int main(int argc, char **argv)
 
         looper_info.plot->render();
 
-        x_axis_min = looper_info.plot->x_min_plot;
-        x_axis_max = looper_info.plot->x_max_plot;
+        double x_axis_min = looper_info.plot->x_min_plot;
+        double x_axis_max = looper_info.plot->x_max_plot;
         g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
         g_history->Draw("ap");
