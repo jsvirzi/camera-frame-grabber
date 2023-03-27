@@ -4,12 +4,38 @@
 #include <TF1.h>
 #include <TCanvas.h>
 #include <TRootCanvas.h>
+#include <TLatex.h>
+#include <TText.h>
+
+#include <pthread.h>
 
 //#include <stdlib.h>
 //#include <stdio.h>
 #include <unistd.h>
 
 #include "plot.hpp"
+
+TText *g_text = 0;
+int iter = 0;
+
+void *app_looper(void *argv)
+{
+    while (1) {
+        sleep(1);
+        printf("iter = %d\n", ++iter);
+        if (iter > 5) {
+            g_text = new TText(0.0, 0.0, "hello");
+            g_text->Draw();
+//            g_text->SetName("blah");
+//            if (g_text->GetName() != "lat") {
+//                g_text->SetName("lat");
+//                g_text->Draw();
+//            }
+        }
+    }
+
+    return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -18,6 +44,10 @@ int main(int argc, char **argv)
     TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
 
     double x = -5.0;
+
+    pthread_t tid;
+
+    pthread_create(&tid, NULL, app_looper, 0);
 
     TF1 *f1 = new TF1("f1","sin(x)", x, x + 10);
     f1->Draw("alp");
@@ -36,8 +66,10 @@ int main(int argc, char **argv)
         c->Modified();
         c->Update();
         c->Draw();
+        // c->WaitPrimitive("lat", "Text");
         c->WaitPrimitive();
         ++i;
+        iter = 0;
     }
 
     TRootCanvas *rc = (TRootCanvas *) c->GetCanvasImp();
