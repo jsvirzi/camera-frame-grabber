@@ -25,7 +25,11 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include <TApplication.h>
+#include <TGraph.h>
+
 #include "v4l-mmap.h"
+#include "plot.hpp"
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
@@ -434,6 +438,10 @@ static int close_stack(v4l_client *client)
 }
 
 int main(int argc, char **argv) {
+
+    TApplication the_app;
+    TGraph graph;
+
     v4l_client client;
     memset(&client, 0, sizeof (client));
     client.frame_max_count = 200;

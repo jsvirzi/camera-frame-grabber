@@ -6,6 +6,7 @@
 #include <TRootCanvas.h>
 #include <TLatex.h>
 #include <TText.h>
+#include <TLine.h>
 
 #include <pthread.h>
 
@@ -50,16 +51,19 @@ int main(int argc, char **argv)
     pthread_t tid;
 
     pthread_create(&tid, NULL, app_looper, 0);
+    double x_axis_min = -1.25;
+    double x_axis_max =  1.25;
+    double y_axis_min = 0.0;
+    double y_axis_max = 1.0;
 
     // TF1 *f1 = new TF1("f1","sin(x)", x, x + 10);
     TGraph *g_history = new TGraph(n_x, graph_x, graph_y);
     g_history->SetName("g_history");
     g_history->SetMarkerColor(kBlue);
     g_history->SetMarkerStyle(kOpenCircle);
-    g_history->SetMinimum(0.0);
-    g_history->SetMaximum(1.0);
-    // g_history->GetXaxis()->SetRangeUser(-1.25, 1.25);
-    g_history->GetXaxis()->SetLimits(-1.25, 1.25);
+    g_history->SetMinimum(y_axis_min);
+    g_history->SetMaximum(y_axis_max);
+    g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
     latest_y[0] = 0.5;
     TGraph *g_newest = new TGraph(1, latest_x, latest_y);
@@ -92,11 +96,22 @@ int main(int argc, char **argv)
             g_history->SetPoint(i, graph_x[i], graph_y[i]);
         }
 
-        // g_history->GetXaxis()->SetRangeUser(-1.25, 1.25);
-        g_history->GetXaxis()->SetLimits(-1.25, 1.25);
+        g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
         g_history->Draw("ap");
         g_newest->Draw("p");
+
+        double x0 = graph_x[0];
+        TLine line_xmin(x0 - 0.05, y_axis_min, x0 - 0.05, y_axis_max);
+        TLine line_xmax(x0 + 0.05, y_axis_min, x0 + 0.05, y_axis_max);
+        line_xmin.SetLineColor(kRed);
+        line_xmin.SetLineStyle(kDotted);
+        line_xmin.SetLineWidth(3.0);
+        line_xmax.SetLineColor(kRed);
+        line_xmax.SetLineStyle(kDotted);
+        line_xmax.SetLineWidth(3.0);
+        line_xmin.Draw();
+        line_xmax.Draw();
 
         c->Modified();
         c->Update();
