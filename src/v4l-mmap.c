@@ -24,6 +24,10 @@
 #include <linux/videodev2.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
 
 #include <TApplication.h>
 #include <TGraph.h>
@@ -82,6 +86,109 @@ static int errno_exit(const char *s)
 {
     fprintf(stderr, "%s error %d, %s\n", s, errno, strerror(errno));
     return FAILURE;
+}
+
+typedef struct {
+    uint16_t sync_word;
+    uint16_t length;
+    uint16_t type;
+    uint16_t id;
+    uint32_t time;
+    uint16_t serial_number;
+    uint16_t crc;
+} protocol_packet_header_t;
+
+#define MAX_PAYLOAD_SIZE (1024)
+
+typedef struct {
+    protocol_packet_header_t header;
+    uint8_t payload[MAX_PAYLOAD_SIZE];
+} protocol_packet_t;
+
+typedef struct {
+    struct sockaddr_in server_addr;
+    struct sockaddr_in client_addr;
+    int socket_fd;
+    int port;
+    int run;
+    uint8_t ip_addr[4];
+    protocol_packet_t incoming_packet;
+    protocol_packet_t outgoing_packet;
+    socklen_t client_addr_len;
+} udp_server_t;
+
+/**
+ * @brief check for incoming data from socket, or to transmit outgoing data.
+ * @param socket_fd -- socket descriptor for udp port
+ * @return 1 if data is ready on the socket; 0 otherwise
+ */
+unsigned int check_socket(int socket_fd)
+{
+    /* prepare socket operation timeout */
+    struct timeval socket_timeout;
+    unsigned long long micros = 100000;
+    socket_timeout.tv_sec = 0; /* number of seconds */
+    socket_timeout.tv_usec = micros;
+
+    /** get maximum socket fd and populate rset, wset for use by select() */
+    fd_set rset;
+    FD_ZERO(&rset);
+    FD_SET(socket_fd, &rset);
+    int status = select(socket_fd + 1, &rset, NULL, NULL, &socket_timeout);
+    if (status <= 0) { return -1; }
+
+    return (FD_ISSET(socket_fd, &rset)) ? 1 : 0;
+}
+
+enum {
+    TYPE_REQUEST_NONE = 0,
+    TYPE_REQUEST_FOCUS,
+    TYPE_REQUESTS
+};
+
+void *udp_looper(void *arg)
+{
+    udp_server_t *udp_server = (udp_server_t *) arg;
+
+    udp_server->client_addr_len = sizeof (udp_server->client_addr);
+
+    udp_server->socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_server->socket_fd < 0) {
+        fprintf(stderr, "unable to open udp socket\n");
+        return 0;
+    }
+
+    int optval = 1; /* allows rerun server immediately after killing it; avoid waiting for system to figure it out */
+    setsockopt(udp_server->socket_fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+
+    /* build the server's Internet address */
+    memset(&udp_server->server_addr, 0, sizeof(udp_server->server_addr));
+    udp_server->server_addr.sin_family = AF_INET;
+    udp_server->server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    udp_server->server_addr.sin_port = htons((unsigned short) udp_server->port);
+
+    if (bind(udp_server->socket_fd, (struct sockaddr *) &udp_server->server_addr, sizeof(udp_server->server_addr)) < 0) {
+        fprintf(stderr, "bind: error");
+        return 0;
+    }
+
+    while (udp_server->run) {
+        int status = check_socket(udp_server->socket_fd);
+        if (status) {
+            int n = recvfrom(udp_server->socket_fd, &udp_server->incoming_packet, sizeof (udp_server->incoming_packet), 0,
+                (struct sockaddr *) &udp_server->client_addr, sizeof (udp_server->client_addr));
+            if (n == sizeof (protocol_packet_header_t)) {
+                switch (udp_server->incoming_packet.header.type) {
+                case TYPE_REQUEST_FOCUS: {
+                    int n = sizeof (protocol_packet_header_t) + udp_server->outgoing_packet.header.length;
+                    sendto(udp_server->socket_fd, &udp_server->outgoing_packet, n, 0, &udp_server->client_addr, udp_server->client_addr_len);
+                }
+
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 static int xioctl(int fh, int request, void *arg)

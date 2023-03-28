@@ -12,13 +12,18 @@ project(frame-grabber C CXX)
 
 #add_executable(frame-grabber src/main.cpp)
 
-#execute_process(
-#        COMMAND root-config --cflags
-#        OUTPUT_VARIABLE ROOT_CFLAGS
-#)
+execute_process(
+        COMMAND root-config --cflags
+        OUTPUT_VARIABLE ROOT_CFLAGS
+)
+
+execute_process(
+        COMMAND root-config --libs
+        OUTPUT_VARIABLE ROOT_LIBS
+)
 
 message(pre-this)
-# message(${ROOT_CFLAGS})
+message(${ROOT_CFLAGS})
 message(post-this)
 
 add_link_options(-pthread)
