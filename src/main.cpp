@@ -138,6 +138,9 @@ double focus(cv::Mat &src) {
     cv::Laplacian(src_gray, dst, CV_64F);
     cv::Scalar mu, sigma;
     cv::meanStdDev(dst, mu, sigma);
+
+    cv::imshow("laplace", dst);
+
     double focusMeasure = sigma.val[0] * sigma.val[0];
     return focusMeasure;
 }
@@ -156,6 +159,8 @@ int main(int argc, char **argv) {
     cv::Mat edges;
     cv::Mat image;
     cv::namedWindow("edges", 1);
+    cv::namedWindow("frame", 1);
+    cv::namedWindow("laplace", 1);
 
     for(;;)
     {
