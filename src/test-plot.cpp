@@ -22,6 +22,11 @@
 
 #include "plot.hpp"
 
+extern "C" {
+#include "udp.h"
+}
+
+
 class LooperInfo {
 public:
     TText *g_text;
@@ -29,6 +34,12 @@ public:
     int run;
     Plot *plot;
     LooperInfo(int n_points = 16);
+    int udp_fd;
+    int udp_port;
+    uint8_t udp_ip_addr[4];
+    struct sockaddr_in server_addr;
+    protocol_packet_t outgoing_packet;
+    protocol_packet_t incoming_packet;
 };
 
 LooperInfo::LooperInfo(int n_points) {
@@ -41,12 +52,44 @@ LooperInfo::LooperInfo(int n_points) {
 void *app_looper(void *arg)
 {
     LooperInfo *looper_info = (LooperInfo *) arg;
+
+    looper_info->udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (looper_info->udp_fd < 0) {
+        fprintf(stderr, "error opening socket\n");
+        return 0;
+    }
+
+    looper_info->server_addr.sin_family = AF_INET;
+    looper_info->server_addr.sin_port = htons(looper_info->udp_port);
+    looper_info->server_addr.sin_addr.s_addr = INADDR_ANY;
+
     while (looper_info->run) {
         sleep(1);
         printf("iter = %d\n", ++looper_info->iter);
         if (looper_info->iter >= 1) {
             looper_info->g_text = new TText(0.0, 0.0, "hello");
             looper_info->g_text->Draw();
+        }
+
+        protocol_packet_header_t *header = &looper_info->outgoing_packet.header;
+        header->sync_word = SYNC_WORD;
+        header->length = 0;
+        header->type = PACKET_TYPE_REQUEST_FOCUS;
+        sendto(looper_info->udp_fd, (const char *) &looper_info->outgoing_packet, sizeof (protocol_packet_header_t), MSG_CONFIRM,
+            (const struct sockaddr *) &looper_info->server_addr, sizeof(looper_info->server_addr));
+
+        socklen_t len = 0;
+        int status = check_socket(looper_info->udp_fd);
+        if (status) {
+            ssize_t n = recvfrom(looper_info->udp_fd, (char *) &looper_info->incoming_packet, sizeof (looper_info->incoming_packet),0,
+                (struct sockaddr *) &looper_info->server_addr, &len);
+            if (n > sizeof (protocol_packet_header_t)) {
+                header = &looper_info->incoming_packet.header;
+                if (header->type == PACKET_TYPE_RESPOND_FOCUS && header->length == sizeof (float)) {
+                    float *focus = (float *) looper_info->incoming_packet.payload;
+                    printf("response = %f", *focus);
+                }
+            }
         }
     }
 
@@ -71,6 +114,7 @@ int main(int argc, char **argv)
 {
     int n_x = 16;
     LooperInfo looper_info(n_x);
+    looper_info.udp_port = 55153; /* TODO */
     TApplication app("app", &argc, argv);
     TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
 
