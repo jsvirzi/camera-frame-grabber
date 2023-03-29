@@ -26,6 +26,22 @@ extern "C" {
 #include "udp.h"
 }
 
+/* calculates elapsed time (in milliseconds) between now and the initialization time (first call to this function) */
+uint32_t elapsed_time(void)
+{
+    static const unsigned long long one_thousand = 1000ULL;
+    static const unsigned long long one_million = 1000000ULL;
+    static unsigned long long ts0_ms = 0;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    unsigned long long secs = (unsigned long long) ts.tv_sec;
+    unsigned long long nano = (unsigned long long) ts.tv_nsec;
+    unsigned long long ts_time = secs * one_thousand + nano / one_million;
+    if (ts0_ms == 0) { ts0_ms = ts_time; }
+    unsigned long long ts_diff = ts_time - ts0_ms;
+    uint32_t diff_ms = ts_diff & 0xffffffff;
+    return diff_ms;
+}
 
 class LooperInfo {
 public:
@@ -36,10 +52,15 @@ public:
     LooperInfo(int n_points = 16);
     int udp_fd;
     int udp_port;
+    int wait_primitive;
     uint8_t udp_ip_addr[4];
     struct sockaddr_in server_addr;
     protocol_packet_t outgoing_packet;
     protocol_packet_t incoming_packet;
+    uint32_t update_timeout;
+    uint32_t update_period;
+    float focus_measure;
+    int focus_data_semaphore;
 };
 
 LooperInfo::LooperInfo(int n_points) {
@@ -47,6 +68,16 @@ LooperInfo::LooperInfo(int n_points) {
     g_text = 0;
     iter = 0;
     run = 0;
+    update_period = 250; /* 4 Hz */
+    update_timeout = 0;
+}
+
+void delay_ms(unsigned int ms) {
+    static const unsigned long long one_thousand = 1000ULL;
+    struct timeval tv;
+    tv.tv_sec = ms / one_thousand;
+    tv.tv_usec = ms * one_thousand;
+    select(0, NULL, NULL, NULL, &tv);
 }
 
 void *app_looper(void *arg)
@@ -65,11 +96,13 @@ void *app_looper(void *arg)
 
     while (looper_info->run) {
 
-        sleep(1);
-        printf("iter = %d\n", ++looper_info->iter);
-        if (looper_info->iter >= 1) {
+        uint32_t now = elapsed_time();
+        if (now > looper_info->update_timeout && (looper_info->wait_primitive)) {
+            printf("iter = %d\n", ++looper_info->iter);
+            looper_info->wait_primitive = 0;
             looper_info->g_text = new TText(0.0, 0.0, "hello");
             looper_info->g_text->Draw();
+            looper_info->update_timeout = now + looper_info->update_period;
         }
 
         protocol_packet_header_t *header = &looper_info->outgoing_packet.header;
@@ -84,12 +117,15 @@ void *app_looper(void *arg)
         if (status) {
             ssize_t n = recvfrom(looper_info->udp_fd, (char *) &looper_info->incoming_packet, sizeof (looper_info->incoming_packet),0,
                 (struct sockaddr *) &looper_info->server_addr, &len);
-            printf("they said it would not be done %d\n", n);
+            // printf("they said it would not be done %d\n", n);
             if (n > sizeof (protocol_packet_header_t)) {
                 header = &looper_info->incoming_packet.header;
-                if (header->type == PACKET_TYPE_RESPOND_FOCUS && header->length == sizeof (float)) {
+                if ((header->type == PACKET_TYPE_RESPOND_FOCUS) && (header->length == sizeof (float))) {
                     float *focus = (float *) looper_info->incoming_packet.payload;
-                    printf("response = %f\n", *focus);
+                    looper_info->focus_measure = *focus;
+                    looper_info->plot->register_point(looper_info->focus_measure);
+                    if (looper_info->focus_data_semaphore == 0) { looper_info->focus_data_semaphore = 1; }
+                    printf("response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure);
                 }
             }
         }
@@ -104,9 +140,6 @@ void *img_looper(void *arg)
     TRandom3 *rndm = new TRandom3(0);
     while (looper_info->run) {
         sleep(1);
-        double x = rndm->Uniform(220.0, 250.0);
-        looper_info->plot->register_point(x);
-        printf("new data(%d) = %f\n", looper_info->plot->n_data, x);
     }
 
     return 0;
@@ -115,6 +148,7 @@ void *img_looper(void *arg)
 int main(int argc, char **argv)
 {
     int n_x = 16;
+    elapsed_time(); /* initializes t = 0 */
     LooperInfo looper_info(n_x);
     looper_info.udp_port = 55153; /* TODO */
     TApplication app("app", &argc, argv);
@@ -150,7 +184,7 @@ int main(int argc, char **argv)
     g_newest->SetMarkerStyle(kFullCircle);
 
     int i = 1;
-    while (1)
+    while (looper_info.run)
     {
 
         if ((i % 2) == 0) {
@@ -194,23 +228,14 @@ int main(int argc, char **argv)
         c->Update();
         c->Draw();
 
+        if (looper_info.run == 0) { looper_info.wait_primitive = 1; }
         c->WaitPrimitive();
         ++i;
         looper_info.iter = 0;
     }
 
-    TRootCanvas *rc = (TRootCanvas *) c->GetCanvasImp();
-    rc->Connect("CloseWindow()", "TApplication", gApplication, "Terminate()");
-    app.Run();
-
-#if 0
-    TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
-    TF1 *f1 = new TF1("f1","sin(x)", -5, 5);
-    f1->SetLineColor(kBlue+1);
-    f1->SetTitle("My g_history;x; sin(x)");
-    f1->Draw();
-    c->Print("demo1.pdf");
-#endif
+    pthread_join(tid_app, 0);
+    pthread_join(tid_img, 0);
 
     return 0;
 }

@@ -153,6 +153,8 @@ extern "C" {
 #include "udp.h"
 }
 
+double focus_measure = 0.0;
+
 /* frame grabber acts as a udp server */
 void *udp_looper(void *arg)
 {
@@ -197,7 +199,7 @@ void *udp_looper(void *arg)
                     header->serial_number = server->serial_number;
                     ++server->serial_number;
                     float *focus = (float *) server->outgoing_packet.payload;
-                    *focus = 1.111f; /* TODO */
+                    *focus = focus_measure;
                     int n = sizeof (protocol_packet_header_t) + server->outgoing_packet.header.length;
                     sendto(server->socket_fd, &server->outgoing_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
                     break;
@@ -247,7 +249,7 @@ int main(int argc, char **argv) {
         cv::imshow("edges", edges);
         cv::imshow("frame", frame);
 
-        double focus_measure = focus(frame);
+        focus_measure = focus(frame);
         // printf("focus = %f\n", focus_measure);
 
         if(cv::waitKey(200) >= 0) break;
