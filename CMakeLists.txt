@@ -39,7 +39,7 @@ include_directories(/home/jsvirzi/utils/root/include)
 # include_directories(/usr/local/Cellar/root/6.26.06_2/include/root)
 # on linux
 # include_directories(/snap/root-framework/919/usr/local/include)
-add_executable(frame-grabber src/main.cpp)
+add_executable(frame-grabber src/main.cpp src/udp.c)
 add_executable(v4l src/v4l-xface.c)
 add_executable(v4l-mmap src/v4l-mmap.c src/frame-process.cpp src/plot.cpp src/udp.c)
 add_executable(test-plot src/test-plot.cpp src/plot.cpp src/udp.c)

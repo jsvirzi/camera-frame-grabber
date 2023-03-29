@@ -3,6 +3,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
 
+#if 0
 typedef struct {
     uint16_t sync_word;
     uint16_t payload_length;
@@ -13,6 +14,7 @@ typedef struct {
     uint16_t rows;
     uint16_t crc;
 } protocol_packet_header_t;
+#endif
 
 #define MAX_PACKET_SIZE (1200)
 #define MAX_PACKETS (4096)
@@ -39,7 +41,6 @@ void initialize_image_packet_ring(image_packet_ring_t *ring, unsigned int max_pa
 
 #define SUCCESS (0)
 #define ERROR (1)
-#define SYNC_WORD (0xAA55)
 
 class ImagePacket {
 public:
@@ -84,6 +85,7 @@ static void image_packet_looper(void *arg) {
 int ImagePacket::send(void *payload, unsigned int length) {
 }
 
+#if 0
 int ImagePacket::send_image_row(uint8_t *row_data, unsigned int cols) {
     unsigned int net_size = image_packet_ring.size - sizeof (protocol_packet_header_t);
     unsigned int n_entries = (cols + net_size - 1) / net_size;
@@ -124,6 +126,8 @@ int send_image(protocol_packet_header_t *pkt_hdr, void *payload, unsigned int le
 
 }
 
+#endif
+
 double focus(cv::Mat &src) {
     cv::Mat src_gray, dst;
     int kernel_size = 3;
@@ -145,13 +149,83 @@ double focus(cv::Mat &src) {
     return focusMeasure;
 }
 
+extern "C" {
+#include "udp.h"
+}
+
+/* frame grabber acts as a udp server */
+void *udp_looper(void *arg)
+{
+    udp_server_t *server = (udp_server_t *) arg;
+
+    server->client_addr_len = sizeof (server->client_addr);
+
+    server->socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (server->socket_fd < 0) {
+        fprintf(stderr, "unable to open udp socket\n");
+        return 0;
+    }
+
+    int optval = 1; /* allows rerun server immediately after killing it; avoid waiting for system to figure it out */
+    setsockopt(server->socket_fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+
+    /* build the server's Internet address */
+    memset(&server->server_addr, 0, sizeof(server->server_addr));
+    server->server_addr.sin_family = AF_INET;
+    server->server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server->server_addr.sin_port = htons((unsigned short) server->port);
+
+    if (bind(server->socket_fd, (struct sockaddr *) &server->server_addr, sizeof(server->server_addr)) < 0) {
+        fprintf(stderr, "bind: error");
+        return 0;
+    }
+
+    while (server->run) {
+        int status = check_socket(server->socket_fd);
+        if (status) {
+            socklen_t len = sizeof (server->client_addr);
+            int n = recvfrom(server->socket_fd, &server->incoming_packet, sizeof (server->incoming_packet), 0,
+                (struct sockaddr *) &server->client_addr, &len);
+            printf("received %d\n", n);
+            if (n == sizeof (protocol_packet_header_t)) {
+                switch (server->incoming_packet.header.type) {
+                case PACKET_TYPE_REQUEST_FOCUS: {
+                    protocol_packet_header_t *header = &server->outgoing_packet.header;
+                    header->sync_word = SYNC_WORD;
+                    header->type = PACKET_TYPE_RESPOND_FOCUS;
+                    header->length = sizeof (float);
+                    header->serial_number = server->serial_number;
+                    ++server->serial_number;
+                    float *focus = (float *) server->outgoing_packet.payload;
+                    *focus = 1.111f; /* TODO */
+                    int n = sizeof (protocol_packet_header_t) + server->outgoing_packet.header.length;
+                    sendto(server->socket_fd, &server->outgoing_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
+                    break;
+                }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
+
+    udp_server_t udp_server;
+    memset(&udp_server, 0, sizeof (udp_server));
+    udp_server.port = 55153;
+    udp_server.run = 1;
+
+    pthread_create(&udp_server.thread_id, NULL, udp_looper, &udp_server);
+
+#if 0
     std::cout << "Hello, World!" << std::endl;
 
     printf("these are the %d arguments\n", argc);
     for (int i = 0; i < argc; ++i) {
         printf("argv[%d] = \"%s\"", i, argv[i]);
     }
+#endif
 
     cv::VideoCapture cap(2);
     if (!cap.isOpened()) { return -1; }
@@ -174,7 +248,7 @@ int main(int argc, char **argv) {
         cv::imshow("frame", frame);
 
         double focus_measure = focus(frame);
-        printf("focus = %f\n", focus_measure);
+        // printf("focus = %f\n", focus_measure);
 
         if(cv::waitKey(200) >= 0) break;
     }

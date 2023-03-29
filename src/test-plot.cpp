@@ -64,6 +64,7 @@ void *app_looper(void *arg)
     looper_info->server_addr.sin_addr.s_addr = INADDR_ANY;
 
     while (looper_info->run) {
+
         sleep(1);
         printf("iter = %d\n", ++looper_info->iter);
         if (looper_info->iter >= 1) {
@@ -75,7 +76,7 @@ void *app_looper(void *arg)
         header->sync_word = SYNC_WORD;
         header->length = 0;
         header->type = PACKET_TYPE_REQUEST_FOCUS;
-        sendto(looper_info->udp_fd, (const char *) &looper_info->outgoing_packet, sizeof (protocol_packet_header_t), MSG_CONFIRM,
+        sendto(looper_info->udp_fd, (const char *) &looper_info->outgoing_packet, sizeof (protocol_packet_header_t), 0,
             (const struct sockaddr *) &looper_info->server_addr, sizeof(looper_info->server_addr));
 
         socklen_t len = 0;
@@ -83,11 +84,12 @@ void *app_looper(void *arg)
         if (status) {
             ssize_t n = recvfrom(looper_info->udp_fd, (char *) &looper_info->incoming_packet, sizeof (looper_info->incoming_packet),0,
                 (struct sockaddr *) &looper_info->server_addr, &len);
+            printf("they said it would not be done %d\n", n);
             if (n > sizeof (protocol_packet_header_t)) {
                 header = &looper_info->incoming_packet.header;
                 if (header->type == PACKET_TYPE_RESPOND_FOCUS && header->length == sizeof (float)) {
                     float *focus = (float *) looper_info->incoming_packet.payload;
-                    printf("response = %f", *focus);
+                    printf("response = %f\n", *focus);
                 }
             }
         }
