@@ -156,12 +156,12 @@ void *udp_looper(void *arg)
     setsockopt(server->socket_fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
 
     /* build the server's Internet address */
-    memset(&server->server_addr, 0, sizeof(server->server_addr));
-    server->server_addr.sin_family = AF_INET;
-    server->server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server->server_addr.sin_port = htons((unsigned short) server->port);
+    memset(&server->server_data_addr, 0, sizeof(server->server_data_addr));
+    server->server_data_addr.sin_family = AF_INET;
+    server->server_data_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server->server_data_addr.sin_port = htons((unsigned short) server->port);
 
-    if (bind(server->socket_fd, (struct sockaddr *) &server->server_addr, sizeof(server->server_addr)) < 0) {
+    if (bind(server->socket_fd, (struct sockaddr *) &server->server_data_addr, sizeof(server->server_data_addr)) < 0) {
         fprintf(stderr, "bind: error");
         return 0;
     }
@@ -170,21 +170,21 @@ void *udp_looper(void *arg)
         int status = check_socket(server->socket_fd);
         if (status) {
             socklen_t len = sizeof (server->client_addr);
-            int n = recvfrom(server->socket_fd, &server->incoming_packet, sizeof (server->incoming_packet), 0,
+            int n = recvfrom(server->socket_fd, &server->incoming_data_packet, sizeof (server->incoming_data_packet), 0,
                 (struct sockaddr *) &server->client_addr, &len);
             if (n == sizeof (protocol_packet_header_t)) {
-                switch (server->incoming_packet.header.type) {
+                switch (server->incoming_data_packet.header.type) {
                 case PACKET_TYPE_REQUEST_FOCUS: {
-                    protocol_packet_header_t *header = &server->outgoing_packet.header;
+                    protocol_packet_header_t *header = &server->outgoing_data_packet.header;
                     header->sync_word = SYNC_WORD;
                     header->type = PACKET_TYPE_RESPOND_FOCUS;
                     header->length = sizeof (float);
                     header->serial_number = server->serial_number;
                     ++server->serial_number;
-                    float *focus = (float *) server->outgoing_packet.payload;
+                    float *focus = (float *) server->outgoing_data_packet.payload;
                     *focus = 1.111; /* TODO */
-                    int n = sizeof (protocol_packet_header_t) + server->outgoing_packet.header.length;
-                    sendto(server->socket_fd, &server->outgoing_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
+                    int n = sizeof (protocol_packet_header_t) + server->outgoing_data_packet.header.length;
+                    sendto(server->socket_fd, &server->outgoing_data_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
                     break;
                 }
                 }

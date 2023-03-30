@@ -166,7 +166,6 @@ void *udp_looper(void *arg)
     int optval = 1; /* allows rerun server immediately after killing it; avoid waiting for system to figure it out */
     setsockopt(server->socket_fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
 
-    /* build the server's Internet address */
     memset(&server->server_addr, 0, sizeof(server->server_addr));
     server->server_addr.sin_family = AF_INET;
     server->server_addr.sin_addr.s_addr = htonl(INADDR_ANY);

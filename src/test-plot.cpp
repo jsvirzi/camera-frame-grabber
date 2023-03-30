@@ -50,13 +50,18 @@ public:
     int run;
     Plot *plot;
     LooperInfo(int n_points = 16);
-    int udp_fd;
-    int udp_port;
+    int udp_data_fd;
+    int udp_data_port;
+    int udp_ctrl_fd;
+    int udp_ctrl_port;
     int wait_primitive;
     uint8_t udp_ip_addr[4];
-    struct sockaddr_in server_addr;
-    protocol_packet_t outgoing_packet;
-    protocol_packet_t incoming_packet;
+    struct sockaddr_in server_data_addr;
+    struct sockaddr_in server_ctrl_addr;
+    protocol_packet_t outgoing_data_packet;
+    protocol_packet_t incoming_data_packet;
+    protocol_packet_t outgoing_ctrl_packet;
+    protocol_packet_t incoming_ctrl_packet;
     uint32_t update_timeout;
     uint32_t update_period;
     float focus_measure;
@@ -84,20 +89,39 @@ void *app_looper(void *arg)
 {
     LooperInfo *looper_info = (LooperInfo *) arg;
 
-    looper_info->udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (looper_info->udp_fd < 0) {
+    looper_info->udp_data_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    looper_info->udp_ctrl_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if ((looper_info->udp_data_fd < 0) || (looper_info->udp_ctrl_fd < 0)) {
         fprintf(stderr, "error opening socket\n");
         return 0;
     }
 
-    looper_info->server_addr.sin_family = AF_INET;
-    looper_info->server_addr.sin_port = htons(looper_info->udp_port);
-    looper_info->server_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(&looper_info->server_data_addr, 0, sizeof (looper_info->server_data_addr));
+    looper_info->server_data_addr.sin_family = AF_INET;
+    looper_info->server_data_addr.sin_port = htons(looper_info->udp_data_port);
+    looper_info->server_data_addr.sin_addr.s_addr = INADDR_ANY;
+
+#if 0
+
+    memset(&looper_info->server_ctrl_addr, 0, sizeof (looper_info->server_ctrl_addr));
+    looper_info->server_ctrl_addr.sin_family = AF_INET;
+    looper_info->server_ctrl_addr.sin_port = htons(looper_info->udp_ctrl_port);
+    looper_info->server_ctrl_addr.sin_addr.s_addr = INADDR_ANY;
+
+    /* we are server for control port */
+    if (bind(looper_info->udp_ctrl_fd, (struct sockaddr *) &looper_info->server_ctrl_addr, sizeof(looper_info->server_ctrl_addr)) < 0) {
+        fprintf(stderr, "bind: error");
+        return 0;
+    }
+
+#endif
 
     while (looper_info->run) {
 
+        socklen_t len;
+        int status;
+
         uint32_t now = elapsed_time();
-//        if (looper_info->wait_primitive) {
         if (now > looper_info->update_timeout && (looper_info->wait_primitive)) {
             printf("iter = %d\n", ++looper_info->iter);
             looper_info->g_text = new TText(0.0, 0.0, "hello");
@@ -106,23 +130,22 @@ void *app_looper(void *arg)
             looper_info->wait_primitive = 0;
         }
 
-        protocol_packet_header_t *header = &looper_info->outgoing_packet.header;
+        protocol_packet_header_t *header = &looper_info->outgoing_data_packet.header;
         header->sync_word = SYNC_WORD;
         header->length = 0;
         header->type = PACKET_TYPE_REQUEST_FOCUS;
-        sendto(looper_info->udp_fd, (const char *) &looper_info->outgoing_packet, sizeof (protocol_packet_header_t), 0,
-            (const struct sockaddr *) &looper_info->server_addr, sizeof(looper_info->server_addr));
+        sendto(looper_info->udp_data_fd, (const char *) &looper_info->outgoing_data_packet, sizeof (protocol_packet_header_t), 0,
+            (const struct sockaddr *) &looper_info->server_data_addr, sizeof(looper_info->server_data_addr));
 
-        socklen_t len = 0;
-        int status = check_socket(looper_info->udp_fd);
+        len = 0;
+        status = check_socket(looper_info->udp_data_fd);
         if (status) {
-            ssize_t n = recvfrom(looper_info->udp_fd, (char *) &looper_info->incoming_packet, sizeof (looper_info->incoming_packet),0,
-                (struct sockaddr *) &looper_info->server_addr, &len);
-            // printf("they said it would not be done %d\n", n);
+            ssize_t n = recvfrom(looper_info->udp_data_fd, (char *) &looper_info->incoming_data_packet, sizeof (looper_info->incoming_data_packet),0,
+                (struct sockaddr *) &looper_info->server_data_addr, &len);
             if (n > sizeof (protocol_packet_header_t)) {
-                header = &looper_info->incoming_packet.header;
+                header = &looper_info->incoming_data_packet.header;
                 if ((header->type == PACKET_TYPE_RESPOND_FOCUS) && (header->length == sizeof (float))) {
-                    float *focus = (float *) looper_info->incoming_packet.payload;
+                    float *focus = (float *) looper_info->incoming_data_packet.payload;
                     looper_info->focus_measure = *focus;
                     looper_info->plot->register_point(looper_info->focus_measure);
                     if (looper_info->focus_data_semaphore == 0) { looper_info->focus_data_semaphore = 1; }
@@ -130,6 +153,22 @@ void *app_looper(void *arg)
                 }
             }
         }
+
+#if 0
+        len = 0;
+        status = check_socket(looper_info->udp_ctrl_fd);
+        if (status) {
+            ssize_t n = recvfrom(looper_info->udp_ctrl_fd, (char *) &looper_info->incoming_ctrl_packet, sizeof (looper_info->incoming_ctrl_packet),0,
+                (struct sockaddr *) &looper_info->server_ctrl_addr, &len);
+            if (n > sizeof (protocol_packet_header_t)) {
+                header = &looper_info->incoming_ctrl_packet.header;
+                printf("we got'er done\n");
+                if ((header->type == PACKET_TYPE_RESPOND_FOCUS) && (header->length == sizeof (float))) {
+                }
+            }
+        }
+#endif
+
     }
 
     return 0;
@@ -152,15 +191,17 @@ int main(int argc, char **argv)
     int n_x = 16;
     elapsed_time(); /* initializes t = 0 */
     LooperInfo looper_info(n_x);
-    looper_info.udp_port = DEFAULT_UDP_PORT;
+    looper_info.udp_data_port = DEFAULT_UDP_PORT;
+    looper_info.udp_ctrl_port = looper_info.udp_data_port + 1;
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-p") == 0) {
-            looper_info.udp_port = atoi(argv[++i]);
+            looper_info.udp_data_port = atoi(argv[++i]);
+            looper_info.udp_ctrl_port = looper_info.udp_data_port + 1;
         }
     }
 
-    printf("using port %d for udp communications\n", looper_info.udp_port);
+    printf("using port %d for udp communications\n", looper_info.udp_data_port);
 
     TApplication app("app", &argc, argv);
     TCanvas* c = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
