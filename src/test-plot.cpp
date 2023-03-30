@@ -186,6 +186,7 @@ int main(int argc, char **argv)
     g_history->SetMarkerStyle(kOpenCircle);
     g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
+    latest_x[0] = n_x;
     latest_y[0] = 0.0;
     TGraph *g_newest = new TGraph(1, latest_x, latest_y);
     g_newest->SetMarkerStyle(kFullCircle);
@@ -193,49 +194,46 @@ int main(int argc, char **argv)
     int i = 1;
     while (looper_info.run)
     {
-        if ((i % 2) == 0) {
-            g_history->SetMarkerColor(kBlue);
-            g_newest->SetMarkerColor(kBlue);
-        } else {
-            g_history->SetMarkerColor(kRed);
-            g_newest->SetMarkerColor(kRed);
-        }
+        int color = ((i % 2) == 0) ? kBlue : kRed;
+        g_history->SetMarkerColor(color);
+        g_newest->SetMarkerColor(color);
 
-        latest_x[0] = looper_info.plot->x_new;
-        g_newest->SetPoint(0, n_x, latest_x[0]);
+        latest_y[0] = looper_info.plot->y_new;
+        int n_pts = g_newest->GetN();
+        g_newest->SetPoint(n_pts - 1, n_x, latest_y[0]);
 
         for (int i = 0; i < n_x; ++i) {
-            g_history->SetPoint(i, (double) i + 1, graph_x[i]);
+            g_history->SetPoint(i, (double) i + 1, graph_y[i]);
         }
 
         looper_info.plot->render(); /* analyze data */
 
-        double x_line_min = looper_info.plot->x_line_target_min;
-        double x_line_max = looper_info.plot->x_line_target_max;
+        double y_line_min = looper_info.plot->y_line_target_min;
+        double y_line_max = looper_info.plot->y_line_target_max;
 
-        double x_axis_min = looper_info.plot->x_min_plot;
-        double x_axis_max = looper_info.plot->x_max_plot;
+        double y_axis_min = looper_info.plot->y_min_plot;
+        double y_axis_max = looper_info.plot->y_max_plot;
 
         g_history->SetMinimum(0.0);
-        g_history->SetMaximum(x_axis_max);
+        g_history->SetMaximum(y_axis_max);
 
-        printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, x_line_min, x_line_max);
+        printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, y_line_min, y_line_max);
 
-        g_history->GetXaxis()->SetLimits(0, n_x + 1);
+        g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
         g_history->Draw("ap");
         g_newest->Draw("p");
 
-        TLine line_xmin(0, x_line_min, n_x + 1, x_line_min);
-        TLine line_xmax(0, x_line_max, n_x + 1, x_line_max);
-        line_xmin.SetLineColor(kRed);
-        line_xmin.SetLineStyle(kDotted);
-        line_xmin.SetLineWidth(3.0);
-        line_xmax.SetLineColor(kRed);
-        line_xmax.SetLineStyle(kDotted);
-        line_xmax.SetLineWidth(3.0);
-        line_xmin.Draw();
-        line_xmax.Draw();
+        TLine line_ymin(x_axis_min, y_line_min, x_axis_max, y_line_min);
+        TLine line_ymax(x_axis_min, y_line_max, x_axis_max, y_line_max);
+        line_ymin.SetLineColor(kRed);
+        line_ymin.SetLineStyle(kDotted);
+        line_ymin.SetLineWidth(3.0);
+        line_ymax.SetLineColor(kRed);
+        line_ymax.SetLineStyle(kDotted);
+        line_ymax.SetLineWidth(3.0);
+        line_ymin.Draw();
+        line_ymax.Draw();
 
         c->Modified();
         c->Update();

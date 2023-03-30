@@ -22,6 +22,7 @@ public:
     void register_point(double x, double y);
     void register_point(double x);
     void render();
+    void reset();
     double *get_x() { return p_x; };
     double *get_y() { return p_y; }
     int get_n() { return n_points; };

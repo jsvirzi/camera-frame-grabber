@@ -12,6 +12,8 @@ void Plot::setup(int n) {
     y_margin = 0.2;
     x_target_window = 0.1;
     y_target_window = 0.1;
+    if (p_x) { delete [] p_x; }
+    if (p_y) { delete [] p_y; }
     p_x = new double [ n_points ];
     p_y = new double [ n_points ];
     for (int i = 0; i < n_points; ++i) {
@@ -20,11 +22,19 @@ void Plot::setup(int n) {
     }
 }
 
+void Plot::reset() {
+    setup(n_points);
+}
+
 Plot::Plot() {
+    p_x = 0;
+    p_y = 0;
     setup(16);
 }
 
 Plot::Plot(int n) {
+    p_x = 0;
+    p_y = 0;
     setup(n);
 }
 
@@ -42,27 +52,27 @@ void Plot::register_point(double x, double y)
     if (y > y_max) { y_max = y; }
 }
 
-void Plot::register_point(double x)
+void Plot::register_point(double y)
 {
     n_axes = 1;
-    x_new = x;
+    y_new = y;
     int idx = n_data % n_points;
-    p_x[idx] = x;
+    p_y[idx] = y;
     ++n_data;
-    if (x < x_min) { x_min = x; }
-    if (x > x_max) { x_max = x; }
+    if (y < y_min) { y_min = y; }
+    if (y > y_max) { y_max = y; }
 }
 
 void Plot::render()
 {
     if (n_axes == 1) {
-        x_min = 0.0;
-        double x_interval = (x_max - x_min);
-        double x_delta = x_interval * x_margin;
-        x_min_plot = x_min - x_delta;
-        x_max_plot = x_max + x_delta;
-        x_delta = x_interval * x_target_window;
-        x_line_target_min = x_max - x_delta;
-        x_line_target_max = x_max + x_delta;
+        y_min = 0.0;
+        double y_interval = (y_max - y_min);
+        double y_delta = y_interval * y_margin;
+        y_min_plot = y_min - y_delta;
+        y_max_plot = y_max + y_delta;
+        y_delta = y_interval * x_target_window;
+        y_line_target_min = y_max - y_delta;
+        y_line_target_max = y_max + y_delta;
     }
 }
