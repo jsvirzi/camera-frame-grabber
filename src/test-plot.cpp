@@ -97,12 +97,13 @@ void *app_looper(void *arg)
     while (looper_info->run) {
 
         uint32_t now = elapsed_time();
+//        if (looper_info->wait_primitive) {
         if (now > looper_info->update_timeout && (looper_info->wait_primitive)) {
             printf("iter = %d\n", ++looper_info->iter);
-            looper_info->wait_primitive = 0;
             looper_info->g_text = new TText(0.0, 0.0, "hello");
             looper_info->g_text->Draw();
             looper_info->update_timeout = now + looper_info->update_period;
+            looper_info->wait_primitive = 0;
         }
 
         protocol_packet_header_t *header = &looper_info->outgoing_packet.header;
@@ -125,7 +126,7 @@ void *app_looper(void *arg)
                     looper_info->focus_measure = *focus;
                     looper_info->plot->register_point(looper_info->focus_measure);
                     if (looper_info->focus_data_semaphore == 0) { looper_info->focus_data_semaphore = 1; }
-                    printf("response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure);
+                    printf("debug: response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure);
                 }
             }
         }
@@ -186,7 +187,6 @@ int main(int argc, char **argv)
     int i = 1;
     while (looper_info.run)
     {
-
         if ((i % 2) == 0) {
             g_history->SetMarkerColor(kBlue);
             g_newest->SetMarkerColor(kBlue);
@@ -202,17 +202,27 @@ int main(int argc, char **argv)
             g_history->SetPoint(i, graph_x[i], graph_y[i]);
         }
 
-        looper_info.plot->render();
+        looper_info.plot->render(); /* analyze data */
+
+        double x_line_min = looper_info.plot->x_line_target_min;
+        double x_line_max = looper_info.plot->x_line_target_max;
 
         double x_axis_min = looper_info.plot->x_min_plot;
         double x_axis_max = looper_info.plot->x_max_plot;
+
+//        x_axis_min = 0.0;
+//        x_axis_max = 1.0;
+//        x_line_min = 0.25;
+//        x_line_max = 0.75;
+//
+        printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, x_line_min, x_line_max);
+
+#if 1
         g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
         g_history->Draw("ap");
         g_newest->Draw("p");
 
-        double x_line_min = looper_info.plot->x_line_target_min;
-        double x_line_max = looper_info.plot->x_line_target_max;
         TLine line_xmin(x_line_min, y_axis_min, x_line_min, y_axis_max);
         TLine line_xmax(x_line_max, y_axis_min, x_line_max, y_axis_max);
         line_xmin.SetLineColor(kRed);
@@ -224,11 +234,13 @@ int main(int argc, char **argv)
         line_xmin.Draw();
         line_xmax.Draw();
 
+#endif
+
         c->Modified();
         c->Update();
         c->Draw();
 
-        if (looper_info.run == 0) { looper_info.wait_primitive = 1; }
+        if (looper_info.wait_primitive == 0) { looper_info.wait_primitive = 1; }
         c->WaitPrimitive();
         ++i;
         looper_info.iter = 0;

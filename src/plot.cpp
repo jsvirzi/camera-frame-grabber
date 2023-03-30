@@ -56,6 +56,7 @@ void Plot::register_point(double x)
 void Plot::render()
 {
     if (n_axes == 1) {
+        x_min = 0.0;
         double x_interval = (x_max - x_min);
         double x_delta = x_interval * x_margin;
         x_min_plot = x_min - x_delta;
