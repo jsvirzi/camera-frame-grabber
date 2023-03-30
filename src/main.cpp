@@ -3,6 +3,8 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
 
+#include "common.h"
+
 #if 0
 typedef struct {
     uint16_t sync_word;
@@ -27,11 +29,6 @@ typedef struct {
     uint8_t buff_pool[MAX_PACKETS][MAX_PACKET_SIZE];
 } image_packet_ring_t;
 
-//unsigned int packet_head = 0;
-//unsigned int packet_tail = 0;
-//unsigned int packet_mask = (MAX_PACKETS - 1);
-//uint8_t *packet_buff_pool[MAX_PACKETS][MAX_PACKET_SIZE];
-
 void initialize_image_packet_ring(image_packet_ring_t *ring, unsigned int max_packets, unsigned int packet_size)
 {
     memset(ring, 0, sizeof (image_packet_ring_t));
@@ -50,8 +47,6 @@ public:
     int send_image_row(uint8_t *row_data, unsigned int cols);
     image_packet_ring_t image_packet_ring;
     unsigned int run;
-//    unsigned int rows;
-//    unsigned int cols;
     ImagePacket();
 };
 
@@ -211,25 +206,28 @@ void *udp_looper(void *arg)
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
-    udp_server_t udp_server;
-    memset(&udp_server, 0, sizeof (udp_server));
-    udp_server.port = 55153;
-    udp_server.run = 1;
+    udp_server_t server;
+    memset(&server, 0, sizeof (server));
+    server.port = DEFAULT_UDP_PORT;
+    server.run = 1;
 
-    pthread_create(&udp_server.thread_id, NULL, udp_looper, &udp_server);
+    int dev_no = 0;
 
-#if 0
-    std::cout << "Hello, World!" << std::endl;
-
-    printf("these are the %d arguments\n", argc);
-    for (int i = 0; i < argc; ++i) {
-        printf("argv[%d] = \"%s\"", i, argv[i]);
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-p") == 0) {
+            server.port = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-d") == 0) {
+            dev_no = atoi(argv[++i]);
+        }
     }
-#endif
 
-    cv::VideoCapture cap(2);
+    printf("using port %d for udp communications. device /dev/video%d for camera\n", server.port, dev_no);
+    pthread_create(&server.thread_id, NULL, udp_looper, &server);
+
+    cv::VideoCapture cap(dev_no);
     if (!cap.isOpened()) { return -1; }
 
     cv::Mat edges;

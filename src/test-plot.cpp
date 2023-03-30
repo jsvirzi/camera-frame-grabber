@@ -148,12 +148,22 @@ void *img_looper(void *arg)
 
 int main(int argc, char **argv)
 {
+
     int n_x = 16;
     elapsed_time(); /* initializes t = 0 */
     LooperInfo looper_info(n_x);
-    looper_info.udp_port = 55153; /* TODO */
+    looper_info.udp_port = DEFAULT_UDP_PORT;
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-p") == 0) {
+            looper_info.udp_port = atoi(argv[++i]);
+        }
+    }
+
+    printf("using port %d for udp communications\n", looper_info.udp_port);
+
     TApplication app("app", &argc, argv);
-    TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
+    TCanvas* c = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
 
     double *graph_x = looper_info.plot->get_x();
     double *graph_y = looper_info.plot->get_y();
@@ -167,18 +177,14 @@ int main(int argc, char **argv)
     pthread_create(&tid_app, NULL, app_looper, &looper_info);
     pthread_create(&tid_img, NULL, img_looper, &looper_info);
 
-//    double x_axis_min = 200.0;
-//    double x_axis_max = 260.0;
-    double y_axis_min = 0.0;
-    double y_axis_max = 1.0;
+    double x_axis_min = 0.0;
+    double x_axis_max = n_x + 1;
 
     TGraph *g_history = new TGraph(n_x, graph_x, graph_y);
     g_history->SetName("g_history");
     g_history->SetMarkerColor(kBlue);
     g_history->SetMarkerStyle(kOpenCircle);
-    g_history->SetMinimum(y_axis_min);
-    g_history->SetMaximum(y_axis_max);
-//    g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
+    g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
     latest_y[0] = 0.0;
     TGraph *g_newest = new TGraph(1, latest_x, latest_y);
@@ -196,10 +202,10 @@ int main(int argc, char **argv)
         }
 
         latest_x[0] = looper_info.plot->x_new;
-        g_newest->SetPoint(0, latest_x[0], latest_y[0]);
+        g_newest->SetPoint(0, n_x, latest_x[0]);
 
         for (int i = 0; i < n_x; ++i) {
-            g_history->SetPoint(i, graph_x[i], graph_y[i]);
+            g_history->SetPoint(i, (double) i + 1, graph_x[i]);
         }
 
         looper_info.plot->render(); /* analyze data */
@@ -210,21 +216,18 @@ int main(int argc, char **argv)
         double x_axis_min = looper_info.plot->x_min_plot;
         double x_axis_max = looper_info.plot->x_max_plot;
 
-//        x_axis_min = 0.0;
-//        x_axis_max = 1.0;
-//        x_line_min = 0.25;
-//        x_line_max = 0.75;
-//
+        g_history->SetMinimum(0.0);
+        g_history->SetMaximum(x_axis_max);
+
         printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, x_line_min, x_line_max);
 
-#if 1
-        g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
+        g_history->GetXaxis()->SetLimits(0, n_x + 1);
 
         g_history->Draw("ap");
         g_newest->Draw("p");
 
-        TLine line_xmin(x_line_min, y_axis_min, x_line_min, y_axis_max);
-        TLine line_xmax(x_line_max, y_axis_min, x_line_max, y_axis_max);
+        TLine line_xmin(0, x_line_min, n_x + 1, x_line_min);
+        TLine line_xmax(0, x_line_max, n_x + 1, x_line_max);
         line_xmin.SetLineColor(kRed);
         line_xmin.SetLineStyle(kDotted);
         line_xmin.SetLineWidth(3.0);
@@ -233,8 +236,6 @@ int main(int argc, char **argv)
         line_xmax.SetLineWidth(3.0);
         line_xmin.Draw();
         line_xmax.Draw();
-
-#endif
 
         c->Modified();
         c->Update();

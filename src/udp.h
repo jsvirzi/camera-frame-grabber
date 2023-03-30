@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 
 typedef struct {
     uint16_t sync_word;
@@ -40,6 +41,7 @@ typedef struct {
 unsigned int check_socket(int socket_fd);
 
 #define SYNC_WORD (0xCAFE)
+#define DEFAULT_UDP_PORT (55153)
 
 enum {
     PACKET_TYPE_REQUEST_NONE = 0,
