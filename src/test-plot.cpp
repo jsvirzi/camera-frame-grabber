@@ -101,8 +101,6 @@ void *app_looper(void *arg)
     looper_info->server_data_addr.sin_port = htons(looper_info->udp_data_port);
     looper_info->server_data_addr.sin_addr.s_addr = INADDR_ANY;
 
-#if 0
-
     memset(&looper_info->server_ctrl_addr, 0, sizeof (looper_info->server_ctrl_addr));
     looper_info->server_ctrl_addr.sin_family = AF_INET;
     looper_info->server_ctrl_addr.sin_port = htons(looper_info->udp_ctrl_port);
@@ -113,8 +111,6 @@ void *app_looper(void *arg)
         fprintf(stderr, "bind: error");
         return 0;
     }
-
-#endif
 
     while (looper_info->run) {
 
@@ -154,20 +150,19 @@ void *app_looper(void *arg)
             }
         }
 
-#if 0
         len = 0;
         status = check_socket(looper_info->udp_ctrl_fd);
-        if (status) {
+        if (status > 0) {
             ssize_t n = recvfrom(looper_info->udp_ctrl_fd, (char *) &looper_info->incoming_ctrl_packet, sizeof (looper_info->incoming_ctrl_packet),0,
                 (struct sockaddr *) &looper_info->server_ctrl_addr, &len);
+            looper_info->plot->reset();
             if (n > sizeof (protocol_packet_header_t)) {
                 header = &looper_info->incoming_ctrl_packet.header;
-                printf("we got'er done\n");
+                printf("we got'er done %zd\n", n);
                 if ((header->type == PACKET_TYPE_RESPOND_FOCUS) && (header->length == sizeof (float))) {
                 }
             }
         }
-#endif
 
     }
 
@@ -221,7 +216,7 @@ int main(int argc, char **argv)
     double x_axis_min = 0.0;
     double x_axis_max = n_x + 1;
 
-    TGraph *g_history = new TGraph(n_x, graph_x, graph_y);
+    TGraph *g_history = new TGraph(n_x); // , graph_x, graph_y);
     g_history->SetName("g_history");
     g_history->SetMarkerColor(kBlue);
     g_history->SetMarkerStyle(kOpenCircle);
@@ -243,8 +238,9 @@ int main(int argc, char **argv)
         int n_pts = g_newest->GetN();
         g_newest->SetPoint(n_pts - 1, n_x, latest_y[0]);
 
+        double *y = looper_info.plot->get_y();
         for (int i = 0; i < n_x; ++i) {
-            g_history->SetPoint(i, (double) i + 1, graph_y[i]);
+            g_history->SetPoint(i, (double) i + 1, y[i]);
         }
 
         looper_info.plot->render(); /* analyze data */
