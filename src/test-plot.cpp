@@ -66,6 +66,7 @@ public:
     uint32_t update_period;
     float focus_measure;
     int focus_data_semaphore;
+    int verbose;
 };
 
 LooperInfo::LooperInfo(int n_points) {
@@ -119,7 +120,7 @@ void *app_looper(void *arg)
 
         uint32_t now = elapsed_time();
         if (now > looper_info->update_timeout && (looper_info->wait_primitive)) {
-            printf("iter = %d\n", ++looper_info->iter);
+            if (looper_info->verbose) { printf("iter = %d\n", ++looper_info->iter); }
             looper_info->g_text = new TText(0.0, 0.0, "hello");
             looper_info->g_text->Draw();
             looper_info->update_timeout = now + looper_info->update_period;
@@ -145,7 +146,7 @@ void *app_looper(void *arg)
                     looper_info->focus_measure = *focus;
                     looper_info->plot->register_point(looper_info->focus_measure);
                     if (looper_info->focus_data_semaphore == 0) { looper_info->focus_data_semaphore = 1; }
-                    printf("debug: response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure);
+                    if (looper_info->verbose) { printf("debug: response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure); }
                 }
             }
         }
@@ -155,7 +156,9 @@ void *app_looper(void *arg)
         if (status > 0) {
             ssize_t n = recvfrom(looper_info->udp_ctrl_fd, (char *) &looper_info->incoming_ctrl_packet, sizeof (looper_info->incoming_ctrl_packet),0,
                 (struct sockaddr *) &looper_info->server_ctrl_addr, &len);
-            looper_info->plot->reset();
+            const char *p = (const char *) &looper_info->incoming_ctrl_packet;
+            if ((n >= 5) && (strncmp(p, "RESET", 5) == 0)) { looper_info->plot->reset(); }
+            if ((n >= 5) && (strncmp(p, "reset", 5) == 0)) { looper_info->plot->reset(); }
             if (n > sizeof (protocol_packet_header_t)) {
                 header = &looper_info->incoming_ctrl_packet.header;
                 printf("we got'er done %zd\n", n);
@@ -193,6 +196,8 @@ int main(int argc, char **argv)
         if (strcmp(argv[i], "-p") == 0) {
             looper_info.udp_data_port = atoi(argv[++i]);
             looper_info.udp_ctrl_port = looper_info.udp_data_port + 1;
+        } else if (strcmp(argv[i], "-v") == 0) {
+            looper_info.verbose = 1;
         }
     }
 
@@ -248,13 +253,13 @@ int main(int argc, char **argv)
         double y_line_min = looper_info.plot->y_line_target_min;
         double y_line_max = looper_info.plot->y_line_target_max;
 
-        double y_axis_min = looper_info.plot->y_min_plot;
+//        double y_axis_min = looper_info.plot->y_min_plot;
         double y_axis_max = looper_info.plot->y_max_plot;
 
         g_history->SetMinimum(0.0);
         g_history->SetMaximum(y_axis_max);
 
-        printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, y_line_min, y_line_max);
+        if (looper_info.verbose) { printf("debug: x axis = (%f, %f). lines at (%f, %f)\n", x_axis_min, x_axis_max, y_line_min, y_line_max); }
 
         g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
