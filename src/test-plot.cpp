@@ -273,6 +273,7 @@ int main(int argc, char **argv)
 //        double y_axis_min = looper_info.plot->y_min_plot;
         double y_axis_max = looper_info.plot->y_max_plot;
 
+        // g_hist->SetBinContent(1, 0.0); /* artificially first bin to 0, to avoid overwhelming histogram with 0-points */
         for (int i = 0; i < 256; ++i) {
             g_hist->SetBinContent(i + 1, looper_info.contrast_histogram[i]);
         }
@@ -288,9 +289,6 @@ int main(int argc, char **argv)
         g_history->Draw("ap");
         g_newest->Draw("p");
 
-        c->cd(2);
-        g_hist->Draw("HIST");
-
         TLine line_ymin(x_axis_min, y_line_min, x_axis_max, y_line_min);
         TLine line_ymax(x_axis_min, y_line_max, x_axis_max, y_line_max);
         line_ymin.SetLineColor(kRed);
@@ -301,6 +299,9 @@ int main(int argc, char **argv)
         line_ymax.SetLineWidth(3.0);
         line_ymin.Draw();
         line_ymax.Draw();
+
+        c->cd(2);
+        g_hist->Draw("HIST");
 
         c->Modified();
         c->Update();
