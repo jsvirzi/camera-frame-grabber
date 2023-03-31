@@ -3,21 +3,6 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
 
-#include "common.h"
-
-#if 0
-typedef struct {
-    uint16_t sync_word;
-    uint16_t payload_length;
-    uint16_t id;
-    uint16_t col;
-    uint16_t cols;
-    uint16_t row;
-    uint16_t rows;
-    uint16_t crc;
-} protocol_packet_header_t;
-#endif
-
 #define MAX_PACKET_SIZE (1200)
 #define MAX_PACKETS (4096)
 
@@ -149,6 +134,10 @@ extern "C" {
 }
 
 double focus_measure = 0.0;
+#define N_CONTRAST_HISTOGRAMS (4)
+uint32_t contrast_histogram[N_CONTRAST_HISTOGRAMS][256];
+int contrast_histogram_head = 0;
+int contrast_histogram_mask = N_CONTRAST_HISTOGRAMS - 1;
 
 /* frame grabber acts as a udp server */
 void *udp_looper(void *arg)
@@ -185,6 +174,7 @@ void *udp_looper(void *arg)
             printf("received %d\n", n);
             if (n == sizeof (protocol_packet_header_t)) {
                 switch (server->incoming_packet.header.type) {
+
                 case PACKET_TYPE_REQUEST_FOCUS: {
                     protocol_packet_header_t *header = &server->outgoing_packet.header;
                     header->sync_word = SYNC_WORD;
@@ -198,11 +188,42 @@ void *udp_looper(void *arg)
                     sendto(server->socket_fd, &server->outgoing_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
                     break;
                 }
+
+                case PACKET_TYPE_REQUEST_CONTRAST_HISTOGRAM: {
+                    protocol_packet_header_t *header = &server->outgoing_packet.header;
+                    header->sync_word = SYNC_WORD;
+                    header->type = PACKET_TYPE_RESPOND_CONTRAST_HISTOGRAM;
+                    header->length = 256 * sizeof (uint32_t);
+                    size_t size = sizeof (contrast_histogram[0]);
+                    int send_index = (contrast_histogram_head - 1) & contrast_histogram_mask;
+                    memcpy(server->outgoing_packet.payload, contrast_histogram[send_index], size);
+                    header->serial_number = server->serial_number;
+                    int n = sizeof (protocol_packet_header_t) + server->outgoing_packet.header.length;
+                    sendto(server->socket_fd, &server->outgoing_packet, n, 0, (struct sockaddr *) &server->client_addr, server->client_addr_len);
+                    ++server->serial_number;
+                    break;
+                }
+
+                default: {
+                    break;
+                }
+
                 }
             }
         }
     }
     return 0;
+}
+
+int calculate_histogram_contrast(cv::Mat &mat, uint32_t hist[256])
+{
+    memset(hist, 0, 256 * sizeof (uint32_t));
+    for (int row = 0; row < mat.rows; ++row) {
+        for (int col = 0; col < mat.cols; ++col) {
+            uint8_t byte = mat.at<uchar>(row, col);
+            ++hist[byte];
+        }
+    }
 }
 
 int main(int argc, char **argv)
@@ -240,6 +261,10 @@ int main(int argc, char **argv)
         cv::Mat frame;
         cap >> frame; // get a new frame from camera
         cvtColor(frame, edges, cv::COLOR_BGR2GRAY);
+
+        calculate_histogram_contrast(edges, contrast_histogram[contrast_histogram_head]);
+        contrast_histogram_head = (contrast_histogram_head + 1) & contrast_histogram_mask;
+
 //        GaussianBlur(edges, edges, cv::Size(7,7), 1.5, 1.5);
         Canny(edges, edges, 0, 30, 3);
 //        imshow("edges", edges);

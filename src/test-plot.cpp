@@ -8,6 +8,7 @@
 #include <TText.h>
 #include <TLine.h>
 #include <TRandom3.h>
+#include <TH1I.h>
 
 #include <pthread.h>
 
@@ -67,6 +68,7 @@ public:
     float focus_measure;
     int focus_data_semaphore;
     int verbose;
+    uint32_t contrast_histogram[256];
 };
 
 LooperInfo::LooperInfo(int n_points) {
@@ -127,10 +129,19 @@ void *app_looper(void *arg)
             looper_info->wait_primitive = 0;
         }
 
-        protocol_packet_header_t *header = &looper_info->outgoing_data_packet.header;
+        protocol_packet_header_t *header;
+
+        header = &looper_info->outgoing_data_packet.header;
         header->sync_word = SYNC_WORD;
         header->length = 0;
         header->type = PACKET_TYPE_REQUEST_FOCUS;
+        sendto(looper_info->udp_data_fd, (const char *) &looper_info->outgoing_data_packet, sizeof (protocol_packet_header_t), 0,
+            (const struct sockaddr *) &looper_info->server_data_addr, sizeof(looper_info->server_data_addr));
+
+        header = &looper_info->outgoing_data_packet.header;
+        header->sync_word = SYNC_WORD;
+        header->length = 0;
+        header->type = PACKET_TYPE_REQUEST_CONTRAST_HISTOGRAM;
         sendto(looper_info->udp_data_fd, (const char *) &looper_info->outgoing_data_packet, sizeof (protocol_packet_header_t), 0,
             (const struct sockaddr *) &looper_info->server_data_addr, sizeof(looper_info->server_data_addr));
 
@@ -147,6 +158,9 @@ void *app_looper(void *arg)
                     looper_info->plot->register_point(looper_info->focus_measure);
                     if (looper_info->focus_data_semaphore == 0) { looper_info->focus_data_semaphore = 1; }
                     if (looper_info->verbose) { printf("debug: response data(%d) = %f\n", looper_info->plot->n_data, looper_info->focus_measure); }
+                } else if (header->type == PACKET_TYPE_RESPOND_CONTRAST_HISTOGRAM) {
+                    memcpy(looper_info->contrast_histogram, looper_info->incoming_data_packet.payload, 256 * sizeof (uint32_t));
+                    if (looper_info->verbose) { printf("debug: histogram data received\n"); }
                 }
             }
         }
@@ -204,7 +218,8 @@ int main(int argc, char **argv)
     printf("using port %d for udp communications\n", looper_info.udp_data_port);
 
     TApplication app("app", &argc, argv);
-    TCanvas* c = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
+    TCanvas* c = new TCanvas("c", "focus-analysis", 0, 0, 2 * 800, 600);
+    c->Divide(2, 1);
 
     double *graph_x = looper_info.plot->get_x();
     double *graph_y = looper_info.plot->get_y();
@@ -226,6 +241,8 @@ int main(int argc, char **argv)
     g_history->SetMarkerColor(kBlue);
     g_history->SetMarkerStyle(kOpenCircle);
     g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
+
+    TH1I *g_hist = new TH1I("contrast", "contrast", 256, -0.5, 255.5);
 
     latest_x[0] = n_x;
     latest_y[0] = 0.0;
@@ -256,6 +273,10 @@ int main(int argc, char **argv)
 //        double y_axis_min = looper_info.plot->y_min_plot;
         double y_axis_max = looper_info.plot->y_max_plot;
 
+        for (int i = 0; i < 256; ++i) {
+            g_hist->SetBinContent(i + 1, looper_info.contrast_histogram[i]);
+        }
+
         g_history->SetMinimum(0.0);
         g_history->SetMaximum(y_axis_max);
 
@@ -263,8 +284,12 @@ int main(int argc, char **argv)
 
         g_history->GetXaxis()->SetLimits(x_axis_min, x_axis_max);
 
+        c->cd(1);
         g_history->Draw("ap");
         g_newest->Draw("p");
+
+        c->cd(2);
+        g_hist->Draw("HIST");
 
         TLine line_ymin(x_axis_min, y_line_min, x_axis_max, y_line_min);
         TLine line_ymax(x_axis_min, y_line_max, x_axis_max, y_line_max);
