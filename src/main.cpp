@@ -252,6 +252,8 @@ int main(int argc, char **argv)
 
     cv::Mat edges;
     cv::Mat image;
+    cv::Mat grays;
+    cv::namedWindow("grays", 1);
     cv::namedWindow("edges", 1);
     cv::namedWindow("frame", 1);
     cv::namedWindow("laplace", 1);
@@ -260,14 +262,16 @@ int main(int argc, char **argv)
     {
         cv::Mat frame;
         cap >> frame; // get a new frame from camera
-        cvtColor(frame, edges, cv::COLOR_BGR2GRAY);
+        cvtColor(frame, grays, cv::COLOR_BGR2GRAY);
 
-        calculate_histogram_contrast(edges, contrast_histogram[contrast_histogram_head]);
+        calculate_histogram_contrast(grays, contrast_histogram[contrast_histogram_head]);
         contrast_histogram_head = (contrast_histogram_head + 1) & contrast_histogram_mask;
 
 //        GaussianBlur(edges, edges, cv::Size(7,7), 1.5, 1.5);
-        Canny(edges, edges, 0, 30, 3);
+        Canny(grays, edges, 0, 30, 3);
 //        imshow("edges", edges);
+
+        cv::imshow("grays", grays);
         cv::imshow("edges", edges);
         cv::imshow("frame", frame);
 
