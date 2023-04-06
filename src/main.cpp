@@ -66,6 +66,8 @@ static void image_packet_looper(void *arg) {
 int ImagePacket::send(void *payload, unsigned int length) {
 }
 
+const char html_buff[] = "GET /example.html HTTP/3\n\r<!DOCTYPE html>\n\r<html>\n\r<body>\n\r<h1>My First Heading</h1>\n\r<p>My first paragraph.</p>\n\r</body>\n\r</html>";
+
 #if 0
 int ImagePacket::send_image_row(uint8_t *row_data, unsigned int cols) {
     unsigned int net_size = image_packet_ring.size - sizeof (protocol_packet_header_t);
@@ -228,7 +230,8 @@ int calculate_histogram_contrast(cv::Mat &mat, uint32_t hist[256])
 }
 
 typedef struct {
-    struct { int x, y; } upper_left, bottom_right, pt1, pt2;
+    int roi_select_state;
+    struct { int x, y; } pt1, pt2;
 } FrameWindowParameters;
 
 void frame_mouse_callback(int event, int x, int y, int flags, void *args)
@@ -236,27 +239,17 @@ void frame_mouse_callback(int event, int x, int y, int flags, void *args)
     FrameWindowParameters *params = (FrameWindowParameters *) args;
     if (event == cv::EVENT_LBUTTONDOWN)
     {
-        if (params->bottom_right.x < params->upper_left.x) {
-            int xx = params->bottom_right.x;
-            params->bottom_right.x = params->upper_left.x;
-            params->upper_left.x = x;
-        }
-
-        if (params->bottom_right.y < params->upper_left.y) {
-            int yy = params->bottom_right.y;
-            params->bottom_right.y = params->upper_left.y;
-            params->upper_left.y = y;
-        }
-
-        params->pt2 = params->pt1;
-        params->pt1.x = x;
-        params->pt1.y = y;
-
+        params->pt2.x = x;
+        params->pt2.y = y;
+        params->roi_select_state = 0;
         fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
     }
     else if (event == cv::EVENT_RBUTTONDOWN)
     {
-//        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+
+        params->pt1.x = x;
+        params->pt1.y = y;
+        params->roi_select_state = 1;
     }
     else if (event == cv::EVENT_MBUTTONDOWN)
     {
@@ -264,6 +257,11 @@ void frame_mouse_callback(int event, int x, int y, int flags, void *args)
     }
     else if (event == cv::EVENT_MOUSEMOVE)
     {
+        if (params->roi_select_state) {
+            params->pt2.x = x;
+            params->pt2.y = y;
+        }
+
 //        fprintf(stderr, "mouse move at (%d, %d) with flags = %x\n", x, y, flags);
     }
 }
