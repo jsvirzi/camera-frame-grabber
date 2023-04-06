@@ -1,4 +1,3 @@
-// webserver.c
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
@@ -6,15 +5,15 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define PORT 8080
+#define PORT 55155
 #define BUFFER_SIZE 1024
 
-int main() {
+void web_server_loop(void *arg) {
     char buffer[BUFFER_SIZE];
     char resp[] = "HTTP/1.0 200 OK\r\n"
                   "Server: webserver-c\r\n"
                   "Content-type: text/html\r\n\r\n"
-                  "<html>hello, world</html>\r\n";
+                  "<html>hello, unto you world</html>\r\n";
 
     // Create a socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -91,5 +90,10 @@ int main() {
         close(newsockfd);
     }
 
+    return 0;
+}
+
+int main(int argc, char **argv) {
+    web_server_loop(0);
     return 0;
 }
