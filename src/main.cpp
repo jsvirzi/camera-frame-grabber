@@ -2,6 +2,7 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 #define MAX_PACKET_SIZE (1200)
 #define MAX_PACKETS (4096)
@@ -226,6 +227,47 @@ int calculate_histogram_contrast(cv::Mat &mat, uint32_t hist[256])
     }
 }
 
+typedef struct {
+    struct { int x, y; } upper_left, bottom_right, pt1, pt2;
+} FrameWindowParameters;
+
+void frame_mouse_callback(int event, int x, int y, int flags, void *args)
+{
+    FrameWindowParameters *params = (FrameWindowParameters *) args;
+    if (event == cv::EVENT_LBUTTONDOWN)
+    {
+        if (params->bottom_right.x < params->upper_left.x) {
+            int xx = params->bottom_right.x;
+            params->bottom_right.x = params->upper_left.x;
+            params->upper_left.x = x;
+        }
+
+        if (params->bottom_right.y < params->upper_left.y) {
+            int yy = params->bottom_right.y;
+            params->bottom_right.y = params->upper_left.y;
+            params->upper_left.y = y;
+        }
+
+        params->pt2 = params->pt1;
+        params->pt1.x = x;
+        params->pt1.y = y;
+
+        fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
+    }
+    else if (event == cv::EVENT_RBUTTONDOWN)
+    {
+//        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if (event == cv::EVENT_MBUTTONDOWN)
+    {
+//        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if (event == cv::EVENT_MOUSEMOVE)
+    {
+//        fprintf(stderr, "mouse move at (%d, %d) with flags = %x\n", x, y, flags);
+    }
+}
+
 int main(int argc, char **argv)
 {
 
@@ -247,16 +289,24 @@ int main(int argc, char **argv)
     printf("using port %d for udp communications. device /dev/video%d for camera\n", server.port, dev_no);
     pthread_create(&server.thread_id, NULL, udp_looper, &server);
 
+    const char *frame_window_name = "frame";
+    const char *grays_window_name = "grays";
+    const char *edges_window_name = "edges";
+    const char *laplace_window_name = "laplace";
+
     cv::VideoCapture cap(dev_no);
     if (!cap.isOpened()) { return -1; }
 
     cv::Mat edges;
     cv::Mat image;
     cv::Mat grays;
-    cv::namedWindow("grays", 1);
-    cv::namedWindow("edges", 1);
-    cv::namedWindow("frame", 1);
-    cv::namedWindow("laplace", 1);
+    cv::namedWindow(grays_window_name, 1);
+    cv::namedWindow(edges_window_name, 1);
+    cv::namedWindow(frame_window_name, 1);
+    cv::namedWindow(laplace_window_name, 1);
+
+    FrameWindowParameters params;
+    cv::setMouseCallback(frame_window_name, frame_mouse_callback, &params);
 
     for(;;)
     {
@@ -271,9 +321,42 @@ int main(int argc, char **argv)
         Canny(grays, edges, 0, 30, 3);
 //        imshow("edges", edges);
 
-        cv::imshow("grays", grays);
-        cv::imshow("edges", edges);
-        cv::imshow("frame", frame);
+//        if (params.bottom_right.x < params.upper_left.x) {
+//            int x = params.bottom_right.x;
+//            params.bottom_right.x = params.upper_left.x;
+//            params.upper_left.x = x;
+//        }
+//
+//        if (params.bottom_right.y < params.upper_left.y) {
+//            int y = params.bottom_right.y;
+//            params.bottom_right.y = params.upper_left.y;
+//            params.upper_left.y = y;
+//        }
+//
+//        if ((params.bottom_right.x > params.upper_left.x) && (params.bottom_right.y > params.upper_left.y)){
+//            cv::Point pt1(params.upper_left.x, params.upper_left.y);
+//            cv::Point pt2(params.bottom_right.x, params.bottom_right.y);
+//            cv::Scalar color(255, 0, 0);
+//            int thickness = 5;
+//            cv::rectangle(frame, pt1, pt2, color, thickness);
+//        }
+//
+//        cv::Point pt1(100, 100);
+//        cv::Point pt2(500, 500);
+//        cv::Scalar color(255, 0, 0);
+//        int thickness = 50;
+//        cv::rectangle(frame, pt1, pt2, color, thickness);
+//        cv::line(frame, pt1, pt2, color, thickness);
+
+        cv::Point pt1(params.pt1.x, params.pt1.y);
+        cv::Point pt2(params.pt2.x, params.pt2.y);
+        cv::Scalar color(0, 255, 0);
+        int thickness = 5;
+        cv::rectangle(frame, pt1, pt2, color, thickness);
+
+        cv::imshow(grays_window_name, grays);
+        cv::imshow(edges_window_name, edges);
+        cv::imshow(frame_window_name, frame);
 
         focus_measure = focus(frame);
         // printf("focus = %f\n", focus_measure);
