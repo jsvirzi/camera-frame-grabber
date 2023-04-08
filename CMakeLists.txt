@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(frame-grabber C CXX)
 
+set(ROOTSYS /home/jsvirzi/root/utils)
+message(ROOTSYS = ${ROOTSYS})
+
 #include_directories(/usr/local/include/opencv4)
 
 #add_executable(frame-grabber src/main.cpp)
@@ -43,9 +46,9 @@ add_executable(frame-grabber src/main.cpp src/udp.c src/web-server.c)
 add_executable(v4l src/v4l-xface.c)
 add_executable(v4l-mmap src/v4l-mmap.c src/frame-process.cpp src/plot.cpp src/udp.c)
 add_executable(test-plot src/test-plot.cpp src/plot.cpp src/udp.c)
-target_link_libraries(frame-grabber -L/home/jsvirzi/utils/root/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,/home/jsvirzi/utils/root/lib -pthread -lm -ldl -rdynamic)
+target_link_libraries(frame-grabber -L${ROOTSYS}/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,/home/jsvirzi/utils/root/lib -pthread -lm -ldl -rdynamic)
 target_link_libraries(frame-grabber ${OpenCV_LIBS})
-target_link_libraries(v4l-mmap ${OpenCV_LIBS})
+target_link_libraries(v4l-mmap -lpthread ${OpenCV_LIBS})
 add_compile_options(-lpthread -lm)
 # target_compile_options(-stdlib=libc++ -pthread -std=c++17 -m64)
 
@@ -54,6 +57,6 @@ add_compile_options(-lpthread -lm)
 # on linux machine
 # target_link_libraries(test-plot -L/snap/root-framework/919/usr/local/lib -lCore -lImt -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lROOTVecOps -lTree -lTreePlayer -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lMultiProc -lROOTDataFrame -Wl,-rpath,/snap/root-framework/919/usr/local/lib -pthread -lm -ldl -rdynamic)
 # target_link_libraries(test-plot -lpthread -lm)
-target_link_libraries(test-plot -L/home/jsvirzi/utils/root/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,/home/jsvirzi/utils/root/lib -pthread -lm -ldl -rdynamic)
+target_link_libraries(test-plot -L${ROOTSYS}/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,/home/jsvirzi/utils/root/lib -pthread -lm -ldl -rdynamic)
 add_compile_options(-pthread -m64 -I/home/jsvirzi/utils/root/include)
 include_directories(/home/jsvirzi/utils/root/include)
