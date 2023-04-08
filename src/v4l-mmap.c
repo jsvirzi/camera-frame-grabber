@@ -290,6 +290,18 @@ static int init_device(v4l_client *client)
     client->rows = fmt.fmt.pix.height;
     client->cols = fmt.fmt.pix.width;
     client->bytes_per_pixel = fmt.fmt.pix.sizeimage / (client->cols * client->rows);
+    printf("pixel width/height = (%d, %d). size = %d\n", client->cols, client->rows, client->bytes_per_pixel);
+
+
+    struct v4l2_fmtdesc fmtdesc;
+    memset(&fmtdesc,0,sizeof(fmtdesc));
+    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    printf("available:\n");
+    while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
+    {
+        printf("format: %s\n", fmtdesc.description);
+        fmtdesc.index++;
+    }
 
     if (client->io_method == IO_METHOD_MMAP) {
         init_mmap(client);
@@ -342,12 +354,14 @@ static int init_mmap(v4l_client *client)
         } else { errno_exit("VIDIOC_REQBUFS"); }
     }
 
-    if (req.count < 2) {
+    if (req.count < 2)
+    {
         fprintf(stderr, "Insufficient buffer memory on %s\n", client->dev_name);
         return FAILURE;
     }
 
-    for (client->n_buffers = 0; client->n_buffers < req.count; ++client->n_buffers) {
+    for (client->n_buffers = 0; client->n_buffers < req.count; ++client->n_buffers)
+    {
         struct v4l2_buffer buf;
         memset(&buf, 0, sizeof (buf));
 
@@ -405,12 +419,12 @@ static int process_image(v4l_client *client, void const * const p, int size)
 {
     ++client->frame_number;
     image_process_stack_process_image(p, size);
-    char filename[15];
-    sprintf(filename, "frame-%d.raw", client->frame_number);
-    FILE *fp = fopen(filename,"wb");
-    fwrite(p, size, 1, fp);
-    fflush(fp);
-    fclose(fp);
+    char filename[16];
+    snprintf(filename, sizeof (filename), "frame-%d.raw", client->frame_number);
+//    FILE *fp = fopen(filename,"wb");
+//    fwrite(p, size, 1, fp);
+//    fflush(fp);
+//    fclose(fp);
     return SUCCESS;
 }
 
@@ -422,14 +436,15 @@ static int read_frame(v4l_client *client)
 
     if (client->io_method == IO_METHOD_MMAP) {
         buf.memory = V4L2_MEMORY_MMAP;
+        assert(buf.index < client->n_buffers);
+        process_image(client, client->buffers[buf.index].start, buf.bytesused);
         if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
             if (errno == EAGAIN) { return FAILURE; }
             else { return ERROR; }
         }
-        assert(buf.index < client->n_buffers);
-        process_image(client, client->buffers[buf.index].start, buf.bytesused);
     } else if (client->io_method == IO_METHOD_USERPTR) {
         buf.memory = V4L2_MEMORY_USERPTR;
+        process_image(client, (void *) buf.m.userptr, buf.bytesused);
         if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
             if (errno == EAGAIN) { return SUCCESS; }
             else { return FAILURE; }
@@ -439,7 +454,6 @@ static int read_frame(v4l_client *client)
             if (buf.m.userptr == (unsigned long) client->buffers[i].start && buf.length == client->buffers[i].length) { break; }
         }
         assert(i < client->n_buffers);
-        process_image(client, (void *) buf.m.userptr, buf.bytesused);
     }
     if (xioctl(client->fd, VIDIOC_QBUF, &buf) < 0) { errno_exit("VIDIOC_QBUF"); }
 

@@ -36,17 +36,34 @@ extern "C" {
     void image_process_stack_process_image(void const * const data, unsigned int size)
     {
         unsigned int type = (size / (stack->rows * stack->cols) == 1) ? CV_8U : CV_16U;
+
+        static int counter = 0;
+        ++counter;
+        if ((counter != 0) && (counter % 10) == 0) {
+            printf("image size = %d\n", size);
+        }
+
 #if 1
+        /* uyvy 422 format */
         uint8_t *buff = stack->buff;
-        uint8_t *p = (uint8_t *) data;
         unsigned int index = 0;
-        for (int i = 0; i < stack->rows; ++i) {
-            for (int j = 0; j < stack->cols; ++j) {
-                buff[index++] = *p++;
-                ++p;
+        unsigned int cols = stack->cols;
+        unsigned int rows = stack->rows;
+        uint8_t *img_data = (uint8_t *) data;
+        for (int i = 0; i < rows; ++i)
+        {
+            uint8_t *p = (uint8_t *) &img_data[i * cols * 2];
+            for (int j = 0; j < cols; j += 2)
+            {
+                uint8_t ux = *p++;
+                uint8_t y0 = *p++;
+                uint8_t vx = *p++;
+                uint8_t y1 = *p++;
+                buff[index++] = y0;
+                buff[index++] = y1;
             }
         }
-        cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
+        cv::Mat mat(rows, cols, CV_8U, buff);
 #endif
         // cv::Mat mat(stack->rows, stack->cols, type, data);
 
