@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.10)
 
 set(TOOLS_COMPILER_PATH /usr/bin)
 set(CMAKE_C_COMPILER ${TOOLS_COMPILER_PATH}/gcc)
@@ -29,7 +29,7 @@ message(pre-this)
 message(${ROOT_CFLAGS})
 message(post-this)
 
-add_link_options(-pthread)
+#add_link_options(-pthread)
 
 # find_package(ROOT REQUIRED COMPONENTS RIO Net)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -37,7 +37,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 find_package( OpenCV REQUIRED )
 
 include_directories(${OpenCV_INCLUDE_DIRS} )
-include_directories(/home/jsvirzi/utils/root/include)
+include_directories(${ROOTSYS}/include)
 # on macbook
 # include_directories(/usr/local/Cellar/root/6.26.06_2/include/root)
 # on linux
@@ -46,7 +46,7 @@ add_executable(frame-grabber src/main.cpp src/udp.c src/web-server.c)
 add_executable(v4l src/v4l-xface.c)
 add_executable(v4l-mmap src/v4l-mmap.c src/frame-process.cpp src/plot.cpp src/udp.c)
 add_executable(test-plot src/test-plot.cpp src/plot.cpp src/udp.c)
-target_link_libraries(frame-grabber -L${ROOTSYS}/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,/home/jsvirzi/utils/root/lib -pthread -lm -ldl -rdynamic)
+target_link_libraries(frame-grabber -L${ROOTSYS}/lib -lCore -lCint -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -Wl,-rpath,${ROOTSYS}/lib -pthread -lm -ldl -rdynamic)
 target_link_libraries(frame-grabber ${OpenCV_LIBS})
 target_link_libraries(v4l-mmap -lpthread ${OpenCV_LIBS})
 add_compile_options(-lpthread -lm)
