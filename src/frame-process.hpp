@@ -1,6 +1,8 @@
 #ifndef FRAME_PROCESS_H
 #define FRAME_PROCESS_H
 
+#include <pthread.h>
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
 
@@ -18,8 +20,13 @@ public:
     unsigned int cols;
     unsigned int pixel_format;
     const char *window_name;
-    uint8_t *buff;
+    uint8_t **buff;
     ssize_t buff_size;
+    unsigned int buff_head;
+    unsigned int buff_tail;
+    unsigned int buff_mask;
+    unsigned int run;
+    pthread_t thread_id;
 };
 
 #endif

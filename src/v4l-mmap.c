@@ -448,7 +448,7 @@ static int read_frame(v4l_client *client)
         buf.memory = V4L2_MEMORY_MMAP;
         assert(buf.index < client->n_buffers);
         unsigned int n = (buf.bytesused > 0) ? buf.bytesused : buf.length;
-        printf("process_image(%p, %p, %d)\n", client, client->buffers[buf.index].start, n);
+        // printf("process_image(%p, %p, %d)\n", client, client->buffers[buf.index].start, n);
         process_image(client, client->buffers[buf.index].start, n);
         if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
             if (errno == EAGAIN) { return FAILURE; }
@@ -590,8 +590,8 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("yuyv = 0x%8.8x", V4L2_PIX_FMT_YUYV);
-    printf("grey = 0x%8.8x", V4L2_PIX_FMT_GREY);
+    printf("yuyv = 0x%8.8x\n", V4L2_PIX_FMT_YUYV);
+    printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
 
     open_device(&client);
