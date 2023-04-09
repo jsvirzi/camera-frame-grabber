@@ -43,17 +43,14 @@ extern "C" {
             printf("image size = %d\n", size);
         }
 
+        uint8_t *img_data = (uint8_t *) data;
+        uint8_t *buff = stack->buff;
+        unsigned int index = 0;
         if (stack->pixel_format == V4L2_PIX_FMT_YUYV) {
             /* uyvy 422 format */
-            uint8_t *buff = stack->buff;
-            unsigned int index = 0;
-            unsigned int cols = stack->cols;
-            unsigned int rows = stack->rows;
-            uint8_t *img_data = (uint8_t *) data;
-
-            for (int i = 0; i < rows; ++i) {
-                uint8_t *p = (uint8_t *) &img_data[i * cols * 2];
-                for (int j = 0; j < cols; j += 2) {
+            for (int i = 0; i < stack->rows; ++i) {
+                uint8_t *p = (uint8_t *) &img_data[i * stack->cols * 2];
+                for (int j = 0; j < stack->cols; j += 2) {
                     uint8_t ux = *p++;
                     uint8_t y0 = *p++;
                     uint8_t vx = *p++;
@@ -62,7 +59,19 @@ extern "C" {
                     buff[index++] = y1;
                 }
             }
-            cv::Mat mat(rows, cols, CV_8U, buff);
+            cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
+            cv::imshow(stack->window_name, mat);
+            if(cv::waitKey(200) >= 0) { ; }
+        } else if (stack->pixel_format == V4L2_PIX_FMT_GREY) {
+            /* uyvy 422 format */
+            for (int i = 0; i < stack->rows; ++i) {
+                uint8_t *p = (uint8_t *) &img_data[i * stack->cols];
+                for (int j = 0; j < stack->cols; ++j) {
+                    uint8_t y = *p++;
+                    buff[index++] = y;
+                }
+            }
+            cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
             cv::imshow(stack->window_name, mat);
             if(cv::waitKey(200) >= 0) { ; }
         }

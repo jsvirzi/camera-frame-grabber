@@ -590,6 +590,8 @@ int main(int argc, char **argv)
         }
     }
 
+    printf("yuyv = 0x%8.8x", V4L2_PIX_FMT_YUYV);
+    printf("grey = 0x%8.8x", V4L2_PIX_FMT_GREY);
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
 
     open_device(&client);
