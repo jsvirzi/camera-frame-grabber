@@ -37,7 +37,8 @@ extern "C" {
         ImageProcessStack *stack = (ImageProcessStack *) arg;
         while (stack->run) {
             if (stack->buff_head == stack->buff_tail) { delay_us(1000); }
-            cv::Mat mat(stack->rows, stack->cols, CV_8U, stack->buff[stack->buff_tail]);
+            unsigned int index = (stack->buff_head - 1) & stack->buff_mask;
+            cv::Mat mat(stack->rows, stack->cols, CV_8U, stack->buff[index]);
             cv::imshow(stack->window_name, mat);
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
