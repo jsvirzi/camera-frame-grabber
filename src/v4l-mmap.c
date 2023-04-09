@@ -281,6 +281,7 @@ static int init_device(v4l_client *client)
     min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
     if (fmt.fmt.pix.sizeimage < min) { fmt.fmt.pix.sizeimage = min; }
 
+    printf("pixel format = 0x%8.8x\n", client->pixel_format);
     if (client->pixel_format == 0) {
         struct v4l2_fmtdesc fmtdesc;
         memset(&fmtdesc,0,sizeof(fmtdesc));
@@ -288,7 +289,8 @@ static int init_device(v4l_client *client)
         printf("available:\n");
         while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
         {
-            printf("format: %s\n", fmtdesc.description);
+            printf("format: %s => 0x%8.8x index = %d type = %d flags = 0x%8.8x\n",
+                fmtdesc.description, fmtdesc.pixelformat, fmtdesc.index, fmtdesc.type, fmtdesc.flags);
             fmtdesc.index++;
         }
         return SUCCESS;
@@ -548,7 +550,7 @@ static int uninit_device(v4l_client *client)
 
 static int init_stack(v4l_client *client)
 {
-    image_process_stack_initialize(client->rows, client->cols, client->type);
+    image_process_stack_initialize(client->rows, client->cols, client->pixel_format);
     client->run = 0;
     client->thread_started = 0;
     int status = pthread_create(&client->thread_id, NULL, v4l_looper, client);

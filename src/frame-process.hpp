@@ -16,7 +16,7 @@ public:
     void process_image(void *data, unsigned int size);
     unsigned int rows;
     unsigned int cols;
-    unsigned int type;
+    unsigned int pixel_format;
     const char *window_name;
     uint8_t *buff;
     ssize_t buff_size;
