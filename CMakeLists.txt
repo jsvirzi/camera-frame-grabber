@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 project(frame-grabber C CXX)
 
 set(ROOTSYS /home/jsvirzi/root/utils)
-message(ROOTSYS = ${ROOTSYS})
+message(ROOTSYS = $ENV{ROOTSYS})
 
 #include_directories(/usr/local/include/opencv4)
 

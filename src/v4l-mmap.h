@@ -25,6 +25,7 @@ typedef struct {
     pthread_t thread_id;
     char thread_name[32];
     int thread_started;
+    uint32_t pixel_format;
 } v4l_client;
 
 #endif

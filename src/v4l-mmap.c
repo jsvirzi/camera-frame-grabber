@@ -301,6 +301,7 @@ static int init_device(v4l_client *client)
     client->bytes_per_pixel = fmt.fmt.pix.sizeimage / (client->cols * client->rows);
     printf("pixel width/height = (%d, %d). size = %d\n", client->cols, client->rows, client->bytes_per_pixel);
 
+#if 0
     memset(&fmt, 0, sizeof (fmt));
     fmt.type = 1;
     fmt.fmt.pix.width = 1920;
@@ -312,6 +313,7 @@ static int init_device(v4l_client *client)
         printf("fail: VIDIO_S_FMT");
         return ERROR;
     }
+#endif
 
     if (client->io_method == IO_METHOD_MMAP) {
         init_mmap(client);
@@ -584,10 +586,15 @@ int main(int argc, char **argv)
         if (strcmp(argv[i], "-res") == 0) {
             client.cols = atoi(argv[++i]);
             client.rows = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-fmt") == 0) {
+            sscanf(argv[++i], "%x", &client.pixel_format);
         } else if (strcmp(argv[i], "-d") == 0) {
             client.dev_name = argv[++i];
         }
     }
+
+    printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
+
     client.frame_max_count = 200; /* TODO */
     open_device(&client);
     init_device(&client);
