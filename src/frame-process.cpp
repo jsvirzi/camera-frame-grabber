@@ -35,11 +35,9 @@ extern "C" {
 
     void image_process_stack_process_image(void const * const data, unsigned int size)
     {
-        unsigned int type = (size / (stack->rows * stack->cols) == 1) ? CV_8U : CV_16U;
-
         static int counter = 0;
         ++counter;
-        if ((counter != 0) && (counter % 10) == 0) {
+        if ((counter % 10) == 0) {
             printf("image size = %d\n", size);
         }
 

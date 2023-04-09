@@ -272,17 +272,26 @@ static int init_device(v4l_client *client)
     }
 
     memset(&fmt, 0, sizeof (fmt));
-
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (xioctl(client->fd, VIDIOC_G_FMT, &fmt) < 0) { errno_exit("VIDIOC_G_FMT"); };
 
     /* TODO why? buggy driver paranoia. */
     unsigned int min = fmt.fmt.pix.width * 2;
-    if (fmt.fmt.pix.bytesperline < min)
-        fmt.fmt.pix.bytesperline = min;
+    if (fmt.fmt.pix.bytesperline < min) { fmt.fmt.pix.bytesperline = min; }
     min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
-    if (fmt.fmt.pix.sizeimage < min)
-        fmt.fmt.pix.sizeimage = min;
+    if (fmt.fmt.pix.sizeimage < min) { fmt.fmt.pix.sizeimage = min; }
+
+#if 0
+    struct v4l2_fmtdesc fmtdesc;
+    memset(&fmtdesc,0,sizeof(fmtdesc));
+    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    printf("available:\n");
+    while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
+    {
+        printf("format: %s\n", fmtdesc.description);
+        fmtdesc.index++;
+    }
+#endif
 
     uint32_t word = fmt.fmt.pix.pixelformat;
     printf("pixel format = %c%c%c%c\n", (word >> 0x18) & 0xff, (word >> 0x10) & 0xff, (word >> 0x08) & 0xff, (word >> 0x00) & 0xff);
@@ -292,15 +301,16 @@ static int init_device(v4l_client *client)
     client->bytes_per_pixel = fmt.fmt.pix.sizeimage / (client->cols * client->rows);
     printf("pixel width/height = (%d, %d). size = %d\n", client->cols, client->rows, client->bytes_per_pixel);
 
+    memset(&fmt, 0, sizeof (fmt));
+    fmt.type = 1;
+    fmt.fmt.pix.width = 1920;
+    fmt.fmt.pix.height = 1080;
+    fmt.fmt.pix.pixelformat = 0x56595559; /* YUYV */
+    fmt.fmt.pix.field = V4L2_FIELD_INTERLACED; /* TODO ? */
 
-    struct v4l2_fmtdesc fmtdesc;
-    memset(&fmtdesc,0,sizeof(fmtdesc));
-    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    printf("available:\n");
-    while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
-    {
-        printf("format: %s\n", fmtdesc.description);
-        fmtdesc.index++;
+    if (xioctl(client->fd, VIDIOC_S_FMT, &fmt) < 0) {
+        printf("fail: VIDIO_S_FMT");
+        return ERROR;
     }
 
     if (client->io_method == IO_METHOD_MMAP) {
@@ -437,7 +447,9 @@ static int read_frame(v4l_client *client)
     if (client->io_method == IO_METHOD_MMAP) {
         buf.memory = V4L2_MEMORY_MMAP;
         assert(buf.index < client->n_buffers);
-        process_image(client, client->buffers[buf.index].start, buf.bytesused);
+        unsigned int n = (buf.bytesused > 0) ? buf.bytesused : buf.length;
+        printf("process_image(%p, %p, %d)\n", client, client->buffers[buf.index].start, n);
+        process_image(client, client->buffers[buf.index].start, n);
         if (xioctl(client->fd, VIDIOC_DQBUF, &buf) < 0) {
             if (errno == EAGAIN) { return FAILURE; }
             else { return ERROR; }
@@ -567,8 +579,16 @@ int main(int argc, char **argv)
 {
     v4l_client client;
     memset(&client, 0, sizeof (client));
-    client.frame_max_count = 200;
     client.dev_name = "/dev/video2";
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-res") == 0) {
+            client.cols = atoi(argv[++i]);
+            client.rows = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-d") == 0) {
+            client.dev_name = argv[++i];
+        }
+    }
+    client.frame_max_count = 200; /* TODO */
     open_device(&client);
     init_device(&client);
     arm_capture(&client);
