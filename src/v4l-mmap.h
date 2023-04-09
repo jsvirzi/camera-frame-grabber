@@ -7,7 +7,6 @@
 
 typedef struct {
     unsigned int frame_number;
-    unsigned int frame_max_count;
     unsigned int n_buffers;
     struct {
         void *start;
@@ -15,11 +14,14 @@ typedef struct {
     } buffers[MAX_V4L_BUFFERS];
     int fd;
     int io_method;
-    const char *dev_name;
+    char dev_name[64];
     int run;
     int rows;
     int cols;
     int type;
+    int udp_data_port;
+    int udp_ctrl_port;
+    int udp_http_port;
     int bytes_per_pixel;
     void *image_process_stack;
     pthread_t thread_id;

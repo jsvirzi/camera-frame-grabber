@@ -281,39 +281,35 @@ static int init_device(v4l_client *client)
     min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
     if (fmt.fmt.pix.sizeimage < min) { fmt.fmt.pix.sizeimage = min; }
 
-#if 0
-    struct v4l2_fmtdesc fmtdesc;
-    memset(&fmtdesc,0,sizeof(fmtdesc));
-    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    printf("available:\n");
-    while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
-    {
-        printf("format: %s\n", fmtdesc.description);
-        fmtdesc.index++;
+    if (client->pixel_format == 0) {
+        struct v4l2_fmtdesc fmtdesc;
+        memset(&fmtdesc,0,sizeof(fmtdesc));
+        fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        printf("available:\n");
+        while (ioctl(client->fd,VIDIOC_ENUM_FMT, &fmtdesc) == 0)
+        {
+            printf("format: %s\n", fmtdesc.description);
+            fmtdesc.index++;
+        }
+        return SUCCESS;
     }
-#endif
 
-    uint32_t word = fmt.fmt.pix.pixelformat;
-    printf("pixel format = %c%c%c%c\n", (word >> 0x18) & 0xff, (word >> 0x10) & 0xff, (word >> 0x08) & 0xff, (word >> 0x00) & 0xff);
-    client->type = fmt.type;
-    client->rows = fmt.fmt.pix.height;
-    client->cols = fmt.fmt.pix.width;
     client->bytes_per_pixel = fmt.fmt.pix.sizeimage / (client->cols * client->rows);
-    printf("pixel width/height = (%d, %d). size = %d\n", client->cols, client->rows, client->bytes_per_pixel);
-
-#if 0
+    printf("pixel width/height = (%d, %d) = %d. size = %d\n", client->cols, client->rows, client->cols * client->rows, fmt.fmt.pix.sizeimage);
+    uint32_t word = client->pixel_format;
+    printf("pixel format = %c%c%c%c\n", (word >> 0x18) & 0xff, (word >> 0x10) & 0xff, (word >> 0x08) & 0xff, (word >> 0x00) & 0xff);
     memset(&fmt, 0, sizeof (fmt));
-    fmt.type = 1;
-    fmt.fmt.pix.width = 1920;
-    fmt.fmt.pix.height = 1080;
-    fmt.fmt.pix.pixelformat = 0x56595559; /* YUYV */
-    fmt.fmt.pix.field = V4L2_FIELD_INTERLACED; /* TODO ? */
+    client->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.type = client->type;
+    fmt.fmt.pix.width = client->cols;
+    fmt.fmt.pix.height = client->rows;
+    fmt.fmt.pix.pixelformat = client->pixel_format;
+    fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 
     if (xioctl(client->fd, VIDIOC_S_FMT, &fmt) < 0) {
         printf("fail: VIDIO_S_FMT");
         return ERROR;
     }
-#endif
 
     if (client->io_method == IO_METHOD_MMAP) {
         init_mmap(client);
@@ -503,16 +499,12 @@ static void *v4l_looper(void *arg)
             } else if (r == 0) {
                 fprintf(stderr, "select timeout\n");
                 continue;
-                // exit(EXIT_FAILURE);
             }
 
             if (read_frame(client) == SUCCESS) { break; }
         }
 
         ++client->frame_number;
-        if (client->frame_max_count && (client->frame_number > client->frame_max_count)) { break; }
-        /* EAGAIN - continue select loop. */
-
     }
 
     client->thread_started = 0;
@@ -581,7 +573,6 @@ int main(int argc, char **argv)
 {
     v4l_client client;
     memset(&client, 0, sizeof (client));
-    client.dev_name = "/dev/video2";
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-res") == 0) {
             client.cols = atoi(argv[++i]);
@@ -589,13 +580,16 @@ int main(int argc, char **argv)
         } else if (strcmp(argv[i], "-fmt") == 0) {
             sscanf(argv[++i], "%x", &client.pixel_format);
         } else if (strcmp(argv[i], "-d") == 0) {
-            client.dev_name = argv[++i];
+            snprintf(client.dev_name, sizeof (client.dev_name), "%s", argv[++i]);
+        } else if (strcmp(argv[i], "-p") == 0) {
+            client.udp_data_port = atoi(argv[++i]);
+            client.udp_ctrl_port = atoi(argv[++i]);
+            client.udp_http_port = atoi(argv[++i]);
         }
     }
 
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
 
-    client.frame_max_count = 200; /* TODO */
     open_device(&client);
     init_device(&client);
     arm_capture(&client);
@@ -603,16 +597,15 @@ int main(int argc, char **argv)
 
     udp_server_t udp_server;
     memset(&udp_server, 0, sizeof (udp_server));
-    udp_server.port = 55153;
+    udp_server.port = client.udp_data_port;
     udp_server.run = 1;
 
     pthread_create(&udp_server.thread_id, NULL, udp_looper, &udp_server);
 
     client.run = 1;
 
-    client.frame_max_count = 0;
     unsigned int last_report = client.frame_number;
-    while ((client.frame_max_count == 0) || client.frame_number < client.frame_max_count) {
+    while (client.run) {
         if ((client.frame_number % 10) == 0) {
             if (client.frame_number != last_report) {
                 fprintf(stdout, "%d frames\n", client.frame_number);
