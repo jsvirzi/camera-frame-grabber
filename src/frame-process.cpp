@@ -110,9 +110,7 @@ extern "C" {
                     buff[index++] = y;
                 }
             }
-            cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
-            cv::imshow(stack->window_name, mat);
-            if(cv::waitKey(200) >= 0) { ; }
+            stack->buff_head = new_head;
         }
 
         // cv::Mat mat(stack->rows, stack->cols, type, data);
