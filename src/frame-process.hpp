@@ -6,6 +6,11 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
 
+typedef struct {
+    int roi_select_state;
+    struct { int x, y; } pt1, pt2;
+} FrameWindowParameters;
+
 class ImageProcessStack {
 public:
     cv::Mat *mat_back;
@@ -33,6 +38,10 @@ public:
     unsigned int *roi_buff_index;
     uint8_t *roi_index;
     pthread_t thread_id;
+    double *focus_measure;
+    double focus_measure_img;
+    double focus_measure_roi;
+    FrameWindowParameters frame_window_params;
 };
 
 #endif

@@ -26,6 +26,65 @@ extern "C" {
 
 #include "v4l-mmap.h"
 
+    void frame_mouse_callback(int event, int x, int y, int flags, void *args)
+    {
+        FrameWindowParameters *params = (FrameWindowParameters *) args;
+        if (event == cv::EVENT_LBUTTONDOWN)
+        {
+            params->pt2.x = x;
+            params->pt2.y = y;
+            params->roi_select_state = 0;
+            fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
+        }
+        else if (event == cv::EVENT_RBUTTONDOWN)
+        {
+
+            params->pt1.x = x;
+            params->pt1.y = y;
+            params->roi_select_state = 1;
+        }
+        else if (event == cv::EVENT_MBUTTONDOWN)
+        {
+            //        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        }
+        else if (event == cv::EVENT_MOUSEMOVE)
+        {
+            if (params->roi_select_state) {
+                params->pt2.x = x;
+                params->pt2.y = y;
+            }
+
+            //        fprintf(stderr, "mouse move at (%d, %d) with flags = %x\n", x, y, flags);
+        }
+    }
+
+    /*
+     * @brief
+     *
+     * @param src is grey scale mat
+     */
+    double focus(cv::Mat &src) {
+        cv::Mat src_gray, dst;
+        int kernel_size = 3;
+        int scale = 1;
+        int delta = 0;
+        int depth = CV_16S;
+
+        GaussianBlur( src, src, cv::Size(3,3), 0, 0, cv::BORDER_DEFAULT );
+//        cvtColor( src, src_gray, cv::COLOR_RGB2GRAY );
+        src_gray = src;
+        cv::Mat abs_dst;
+        // Laplacian( src_gray, dst, ddepth, kernel_size, scale, delta, cv::BORDER_DEFAULT );
+        cv::Laplacian(src_gray, dst, CV_64F);
+        cv::Scalar mu, sigma;
+        cv::meanStdDev(dst, mu, sigma);
+
+        cv::imshow("laplace", dst);
+
+        double focusMeasure = sigma.val[0] * sigma.val[0];
+        return focusMeasure;
+    }
+
     static int delay_us(unsigned int microseconds)
     {
         struct timeval tv;
@@ -42,37 +101,41 @@ extern "C" {
             if (stack->buff_head == stack->buff_tail) { delay_us(1000); }
             unsigned int index = (stack->buff_head - 1) & stack->buff_mask;
             cv::Mat mat(stack->rows, stack->cols, CV_8U, stack->buff[index]);
+            for (int y = 0; y < stack->rows; y += stack->roi_stride_y) {
+                cv::Point pt1(0, y);
+                cv::Point pt2(stack->cols - 1, y);
+                cv::line(mat, pt1, pt2, (0, 255, 0), 2);
+            }
+            for (int x = 0; x < stack->cols; x += stack->roi_stride_x) {
+                cv::Point pt1(x, 0);
+                cv::Point pt2(x, stack->rows - 1);
+                cv::line(mat, pt1, pt2, (0, 255, 0), 2);
+            }
             cv::imshow(stack->window_name, mat);
 
-#if 0
-            for (int row = 0; row < stack->rows; ++row) {
-                int y = row % stack->roi_stride_y;
-                for (int col = 0; col < stack->cols; ++col) {
-                    unsigned int pixel_index = row * stack->cols + col;
-                    unsigned int roi_index = stack->roi_index[pixel_index]; /* which roi */
-                    int x = col % stack->roi_stride_x;
-                    stack->roi_buff[roi_index];
-                    pixel_index = y * stack->roi_stride_x + x;
-                    ++stack->roi_buff[roi_index][pixel_index];
-                }
-            }
-#endif
-
-#if 1
             std::vector<cv::Rect> mCells;
-            for (int y = 0; y < stack->rows /* - stack->roi_stride_y */; y += stack->roi_stride_y) {
-                for (int x = 0; x < stack->cols /* - stack->roi_stride_x */; x += stack->roi_stride_x) {
-                    int k = x*y + x;
+            index = 0;
+            for (int y = 0; y < stack->rows; y += stack->roi_stride_y) {
+                for (int x = 0; x < stack->cols; x += stack->roi_stride_x) {
                     cv::Rect grid_rect(x, y, stack->roi_stride_x, stack->roi_stride_y);
                     std::cout << grid_rect<< std::endl;
                     mCells.push_back(grid_rect);
                     rectangle(mat, grid_rect, cv::Scalar(0, 255, 0), 1);
-//                    imshow("src", mat);
-                    imshow(cv::format("grid%d",k), mat(grid_rect));
-//                    cv::waitKey();
+                    cv::Mat roi(mat, grid_rect);
+                    // imshow(cv::format("grid-%d-%d", x, y), roi);
+                    stack->focus_measure[index] = focus(roi);
+                    printf("focus(%d,%d) = %f\n", y, x, stack->focus_measure[index]);
+                    ++index;
                 }
             }
-#endif
+
+            stack->focus_measure_img = focus(mat);
+
+            cv::Point pt1(stack->frame_window_params.pt1.x, stack->frame_window_params.pt1.y);
+            cv::Point pt2(stack->frame_window_params.pt2.x, stack->frame_window_params.pt2.y);
+            cv::Scalar color(0, 255, 0);
+            int thickness = 5;
+            cv::rectangle(mat, pt1, pt2, color, thickness);
 
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
@@ -128,6 +191,11 @@ extern "C" {
                 stack->roi_buff[k] = new uint8_t [stack->roi_buff_size];
             }
         }
+
+        /* one focus measure for each roi + 1 for whole image + 1 for custom roi */
+        stack->focus_measure = new double [stack->n_roi_x * stack->n_roi_y];
+
+        cv::setMouseCallback(stack->window_name, frame_mouse_callback, &stack->frame_window_params);
 
         stack->run = 1;
         int err = pthread_create(&stack->thread_id, 0, image_process_looper, stack);
