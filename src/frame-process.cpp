@@ -38,7 +38,6 @@ extern "C" {
         }
         else if (event == cv::EVENT_RBUTTONDOWN)
         {
-
             params->pt1.x = x;
             params->pt1.y = y;
             params->roi_select_state = 1;
@@ -111,7 +110,6 @@ extern "C" {
                 cv::Point pt2(x, stack->rows - 1);
                 cv::line(mat, pt1, pt2, (0, 255, 0), 2);
             }
-            cv::imshow(stack->window_name, mat);
 
             std::vector<cv::Rect> mCells;
             index = 0;
@@ -134,8 +132,26 @@ extern "C" {
             cv::Point pt1(stack->frame_window_params.pt1.x, stack->frame_window_params.pt1.y);
             cv::Point pt2(stack->frame_window_params.pt2.x, stack->frame_window_params.pt2.y);
             cv::Scalar color(0, 255, 0);
-            int thickness = 5;
+            int thickness = 2;
             cv::rectangle(mat, pt1, pt2, color, thickness);
+
+            int min_x = (pt1.x <= pt2.x) ? pt1.x : pt2.x;
+            int max_x = (pt1.x > pt2.x) ? pt1.x : pt2.x;
+            int min_y = (pt1.y <= pt2.y) ? pt1.y : pt2.y;
+            int max_y = (pt1.y > pt2.y) ? pt1.y : pt2.y;
+            int len_x = max_x - min_x;
+            int len_y = max_y - min_y;
+
+            int roi_good = (max_x > 0) && (max_y > 0) && (len_x > 0) && (len_y > 0);
+
+            if (roi_good) {
+                cv::Rect roi_rect(min_x, min_y, len_x, len_y);
+                cv::Mat roi(mat, roi_rect);
+                stack->focus_measure_img = focus(roi);
+                imshow("roi", roi);
+            }
+
+            cv::imshow(stack->window_name, mat);
 
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
@@ -195,6 +211,7 @@ extern "C" {
         /* one focus measure for each roi + 1 for whole image + 1 for custom roi */
         stack->focus_measure = new double [stack->n_roi_x * stack->n_roi_y];
 
+        memset(&stack->frame_window_params, 0, sizeof (stack->frame_window_params));
         cv::setMouseCallback(stack->window_name, frame_mouse_callback, &stack->frame_window_params);
 
         stack->run = 1;
