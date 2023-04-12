@@ -50,7 +50,11 @@
 #define ERROR (-1)
 #endif
 
-#define MAX_BUFFERS (4)
+// #define MAX_BUFFERS (4)
+
+#define N_ROI_X (4)
+#define N_ROI_Y (4)
+// #define N_ROI (N_ROI_X * N_ROI_Y)
 
 enum io_method {
     IO_METHOD_MMAP = 0,
@@ -67,7 +71,7 @@ static int close_device(v4l_client *client);
 static int init_stack(v4l_client *client);
 static int close_stack(v4l_client *client);
 
-int image_process_stack_initialize(unsigned int rows, unsigned int cols, unsigned int type);
+int image_process_stack_initialize(v4l_client *client);
 void image_process_stack_process_image(void const * const data, unsigned int size);
 
 static int delay_us(unsigned int microseconds)
@@ -550,7 +554,7 @@ static int uninit_device(v4l_client *client)
 
 static int init_stack(v4l_client *client)
 {
-    image_process_stack_initialize(client->rows, client->cols, client->pixel_format);
+    image_process_stack_initialize(client);
     client->run = 0;
     client->thread_started = 0;
     int status = pthread_create(&client->thread_id, NULL, v4l_looper, client);
@@ -575,10 +579,15 @@ int main(int argc, char **argv)
 {
     v4l_client client;
     memset(&client, 0, sizeof (client));
+    client.n_roi_x = N_ROI_X;
+    client.n_roi_y = N_ROI_Y;
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-res") == 0) {
             client.cols = atoi(argv[++i]);
             client.rows = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-roi") == 0) {
+            client.n_roi_x = atoi(argv[++i]);
+            client.n_roi_y = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-fmt") == 0) {
             sscanf(argv[++i], "%x", &client.pixel_format);
         } else if (strcmp(argv[i], "-d") == 0) {
@@ -593,6 +602,7 @@ int main(int argc, char **argv)
     printf("yuyv = 0x%8.8x\n", V4L2_PIX_FMT_YUYV);
     printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
+    printf("roi: %d(H) x %d(V)\n", client.n_roi_x, client.n_roi_y);
 
     open_device(&client);
     init_device(&client);

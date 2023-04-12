@@ -28,6 +28,8 @@ typedef struct {
     char thread_name[32];
     int thread_started;
     uint32_t pixel_format;
+    int n_roi_x;
+    int n_roi_y;
 } v4l_client;
 
 #endif

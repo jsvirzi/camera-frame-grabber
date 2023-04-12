@@ -3,6 +3,7 @@
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
+// #include "opencv2/core.hpp"
 
 #include "frame-process.hpp"
 
@@ -23,6 +24,8 @@ ImageProcessStack *stack;
 
 extern "C" {
 
+#include "v4l-mmap.h"
+
     static int delay_us(unsigned int microseconds)
     {
         struct timeval tv;
@@ -40,6 +43,37 @@ extern "C" {
             unsigned int index = (stack->buff_head - 1) & stack->buff_mask;
             cv::Mat mat(stack->rows, stack->cols, CV_8U, stack->buff[index]);
             cv::imshow(stack->window_name, mat);
+
+#if 0
+            for (int row = 0; row < stack->rows; ++row) {
+                int y = row % stack->roi_stride_y;
+                for (int col = 0; col < stack->cols; ++col) {
+                    unsigned int pixel_index = row * stack->cols + col;
+                    unsigned int roi_index = stack->roi_index[pixel_index]; /* which roi */
+                    int x = col % stack->roi_stride_x;
+                    stack->roi_buff[roi_index];
+                    pixel_index = y * stack->roi_stride_x + x;
+                    ++stack->roi_buff[roi_index][pixel_index];
+                }
+            }
+#endif
+
+#if 1
+            std::vector<cv::Rect> mCells;
+            for (int y = 0; y < stack->rows /* - stack->roi_stride_y */; y += stack->roi_stride_y) {
+                for (int x = 0; x < stack->cols /* - stack->roi_stride_x */; x += stack->roi_stride_x) {
+                    int k = x*y + x;
+                    cv::Rect grid_rect(x, y, stack->roi_stride_x, stack->roi_stride_y);
+                    std::cout << grid_rect<< std::endl;
+                    mCells.push_back(grid_rect);
+                    rectangle(mat, grid_rect, cv::Scalar(0, 255, 0), 1);
+//                    imshow("src", mat);
+                    imshow(cv::format("grid%d",k), mat(grid_rect));
+//                    cv::waitKey();
+                }
+            }
+#endif
+
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
         }
@@ -51,15 +85,20 @@ extern "C" {
         delete [] stack->buff;
     }
 
-    int image_process_stack_initialize(unsigned int rows, unsigned int cols, unsigned int format)
+    int image_process_stack_initialize(v4l_client *client)
     {
+        unsigned int rows = client->rows;
+        unsigned int cols = client->cols;
         stack = new ImageProcessStack;
+        stack->n_roi_x = client->n_roi_x;
+        stack->n_roi_y = client->n_roi_y;
         stack->window_name = "image";
         cv::namedWindow(stack->window_name, 1);
         stack->rows = rows;
         stack->cols = cols;
-        stack->pixel_format = format;
-        stack->buff_size = rows * cols * 4; /* TODO will this always suffice? */
+        stack->pixel_format = client->pixel_format;
+        stack->buff_size = rows * cols * 2; /* TODO will this always suffice? */
+        /* TODO reduce number of buffers to 4 */
 #define N_BUFFERS (8)
         stack->buff_mask = N_BUFFERS - 1;
         stack->buff_head = 0;
@@ -67,6 +106,27 @@ extern "C" {
         stack->buff = new uint8_t * [N_BUFFERS];
         for (int i = 0; i < N_BUFFERS; ++i) {
             stack->buff[i] = new uint8_t [stack->buff_size];
+        }
+        stack->roi_index = new uint8_t [stack->buff_size];
+        stack->roi_stride_x = (cols + stack->n_roi_x - 1) / stack->n_roi_x;
+        stack->roi_stride_y = (rows + stack->n_roi_y - 1) / stack->n_roi_y;
+        for (int row = 0; row < rows; ++row) {
+            int j = row / stack->roi_stride_y;
+            for (int col = 0; col < cols; ++col) {
+                int i = col / stack->roi_stride_x;
+                stack->roi_index[row * cols + col] = (j * stack->n_roi_x) + i;
+            }
+        }
+
+        unsigned int n_roi = stack->n_roi_x * stack->n_roi_y;
+        stack->roi_buff = new uint8_t * [n_roi];
+        stack->roi_buff_size = stack->roi_stride_x * stack->roi_stride_y;
+        stack->roi_buff_index = new unsigned int [n_roi];
+        int k = 0;
+        for (int i = 0; i < stack->n_roi_x; ++i) {
+            for (int j = 0; j < stack->n_roi_y; ++j, ++k) {
+                stack->roi_buff[k] = new uint8_t [stack->roi_buff_size];
+            }
         }
 
         stack->run = 1;
@@ -112,8 +172,6 @@ extern "C" {
             }
             stack->buff_head = new_head;
         }
-
-        // cv::Mat mat(stack->rows, stack->cols, type, data);
 
 #if 0
         uint8_t *buff = (uint8_t *) data;
