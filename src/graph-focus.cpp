@@ -28,10 +28,10 @@ extern "C" {
 
     static FocusGraphInfo focus_graph_info;
 
-    int initialize_focus_graph(int n_focus)
+    int initialize_focus_graph(int n_focus, int *argc, char **argv)
     {
         FocusGraphInfo *info = &focus_graph_info;
-        info->app = new TApplication("app", NULL, NULL);
+        info->app = new TApplication("app", argc, argv);
         // TApplication app("app", &argc, argv);
         info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
 
@@ -42,6 +42,8 @@ extern "C" {
 
         h->SetMarkerColor(kBlue);
         h->SetMarkerStyle(kOpenCircle);
+        h->SetFillColor(kYellow);
+        // h->SetFillStyle(kFillSolid);
         // h->SetMaximum(100.0); /* token maximum. reset later with real data */
         h->FillRandom("gaus", 20000);
 
@@ -49,6 +51,7 @@ extern "C" {
 
         h->SetMarkerColor(kRed);
         h->SetMarkerStyle(kFullCircle);
+        h->FillRandom("gaus", 10000);
 
         info->focus = new double [ n_focus ];
         info->focus_max = new double [ n_focus ];
@@ -63,11 +66,14 @@ extern "C" {
 //        c->cd();
 
         info->focus_hist_max->Draw();
-        // info->focus_hist->Draw("same");
+        info->focus_hist_max->Draw("same p");
+        info->focus_hist->Draw("same p");
 
         c->Modified();
         c->Update();
         c->Draw();
+
+        info->app->Run(kTRUE);
     }
 
     int display_focus_graph(double *focus)
