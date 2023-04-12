@@ -600,7 +600,7 @@ int main(int argc, char **argv)
         }
     }
 
-    initialize_focus_graph(client.n_roi_x * client.n_roi_y + 2, &argc, argv);
+    initialize_focus_graph(client.n_roi_x * client.n_roi_y + 2);
 
     printf("yuyv = 0x%8.8x\n", V4L2_PIX_FMT_YUYV);
     printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);

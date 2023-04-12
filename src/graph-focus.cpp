@@ -26,9 +26,16 @@ extern "C" {
         TCanvas *canvas;
         pthread_t thread_id;
         int run;
+        pthread_t thread_id_app;
     } FocusGraphInfo;
 
     static FocusGraphInfo focus_graph_info;
+
+    void *graph_focus_app_looper(void *arg)
+    {
+        FocusGraphInfo *info = (FocusGraphInfo *) arg;
+        info->app->Run();
+    }
 
     void *graph_focus_looper(void *arg)
     {
@@ -53,13 +60,13 @@ extern "C" {
         }
     }
 
-    int initialize_focus_graph(int n_focus, int *argc, char **argv)
+    int initialize_focus_graph(int n_focus)
     {
         FocusGraphInfo *info = &focus_graph_info;
         memset(&focus_graph_info, 0, sizeof (focus_graph_info));
 
-        info->app = new TApplication("app", argc, argv);
-        // TApplication app("app", &argc, argv);
+        info->app = new TApplication("app", NULL, NULL);
+
         info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
 
         info->focus_hist = new TH1D("focus-hist", "FOCUS", n_focus, -0.5, n_focus + 0.5);
@@ -101,9 +108,9 @@ extern "C" {
         c->Draw();
 
         info->run = 1;
+        pthread_create(&info->thread_id_app, NULL, graph_focus_app_looper, info);
         pthread_create(&info->thread_id, NULL, graph_focus_looper, info);
 
-        info->app->Run();
     }
 
     int display_focus_graph(double *focus)
