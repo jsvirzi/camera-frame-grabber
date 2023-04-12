@@ -31,6 +31,7 @@
 
 #include "v4l-mmap.h"
 #include "udp.h"
+#include "graph-focus.h"
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
@@ -598,6 +599,8 @@ int main(int argc, char **argv)
             client.udp_http_port = atoi(argv[++i]);
         }
     }
+
+    initialize_focus_graph(client.n_roi_x * client.n_roi_y + 2);
 
     printf("yuyv = 0x%8.8x\n", V4L2_PIX_FMT_YUYV);
     printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);

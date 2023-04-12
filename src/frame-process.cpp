@@ -148,7 +148,7 @@ extern "C" {
                 cv::Rect roi_rect(min_x, min_y, len_x, len_y);
                 cv::Mat roi(mat, roi_rect);
                 stack->focus_measure_img = focus(roi);
-                imshow("roi", roi);
+                // imshow("roi", roi);
             }
 
             cv::imshow(stack->window_name, mat);
