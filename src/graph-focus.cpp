@@ -69,7 +69,7 @@ extern "C" {
             c->Update();
             c->Draw();
 
-            info->new_data_semaphore = 1;
+            info->new_data_semaphore = 0;
         }
     }
 
@@ -128,12 +128,12 @@ extern "C" {
 
     }
 
-    int display_focus_graph(double *focus, double focus_img, double focus_roi)
+    int display_focus_graph(double *focus)
     {
         FocusGraphInfo *info = &focus_graph_info;
-        memset(&focus_graph_info, 0, sizeof (focus_graph_info));
 
-        if (info->new_data_semaphore) {
+        printf("display_focus_graph(semaphore=%d, n=%d)\n", info->new_data_semaphore, info->n_focus);
+        if (info->new_data_semaphore == 1) {
             return 1;
         }
 
@@ -144,9 +144,12 @@ extern "C" {
             if (f > info->focus_max[i]) {
                 info->focus_max[i] = f;
             }
+            printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
         }
-        info->focus[i] = focus_img;
-        info->focus[i] = focus_roi;
+#if 0
+        info->focus[i++] = focus_img;
+        info->focus[i++] = focus_roi;
+#endif
 
         int bin = 1;
         for (i = 0; i < info->n_focus; ++i, ++bin) {
@@ -154,6 +157,7 @@ extern "C" {
             info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
         }
 
+#if 0
         info->focus_hist->SetBinContent(bin, info->focus[i]);
         info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
         ++i;
@@ -163,6 +167,7 @@ extern "C" {
         info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
         ++i;
         ++bin;
+#endif
 
         info->new_data_semaphore = 1;
         return 0;

@@ -126,12 +126,13 @@ extern "C" {
                     cv::Mat roi(mat, grid_rect);
                     // imshow(cv::format("grid-%d-%d", x, y), roi);
                     stack->focus_measure[index] = focus(roi);
-                    printf("focus(%d,%d) = %f\n", y, x, stack->focus_measure[index]);
+                    printf("focus(%d,%d) = %f/%d\n", y, x, stack->focus_measure[index], index);
                     ++index;
                 }
             }
 
             stack->focus_measure_img = focus(mat);
+            stack->focus_measure[index++] = stack->focus_measure_img;
 
             cv::Point pt1(stack->frame_window_params.pt1.x, stack->frame_window_params.pt1.y);
             cv::Point pt2(stack->frame_window_params.pt2.x, stack->frame_window_params.pt2.y);
@@ -151,13 +152,19 @@ extern "C" {
             if (roi_good) {
                 cv::Rect roi_rect(min_x, min_y, len_x, len_y);
                 cv::Mat roi(mat, roi_rect);
-                stack->focus_measure_img = focus(roi);
+                stack->focus_measure_roi = focus(roi);
+                stack->focus_measure[index++] = stack->focus_measure_roi;
                 // imshow("roi", roi);
+            }
+
+            printf("===================TODO index = %d/%d\n", index, stack->n_roi_x * stack->n_roi_y + 2); /* TODO */
+            for (int i = 0; i < index; ++i) {
+                printf("==============TODO focus = %f\n", stack->focus_measure[i]);
             }
 
             cv::imshow(stack->window_name, mat);
 
-            display_focus_graph(stack->focus_measure, stack->focus_measure_img, stack->focus_measure_roi);
+            display_focus_graph(stack->focus_measure);
 
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
