@@ -92,6 +92,22 @@ extern "C" {
         h->SetMarkerColor(kBlue);
         h->SetMarkerStyle(kOpenCircle);
         h->SetFillColor(kYellow);
+        h->SetStats(kFALSE);
+
+        char label[32];
+        int bin;
+        TAxis *axis = h->GetXaxis();
+        for (bin = 1; bin <= (n_focus - 2); ++bin) {
+            snprintf(label, sizeof (label), "ROI-%d", bin);
+            axis->SetBinLabel(bin, label);
+        }
+        snprintf(label, sizeof (label), "IMG", bin);
+        axis->SetBinLabel(bin, label);
+        ++bin;
+        snprintf(label, sizeof (label), "ROI", bin);
+        axis->SetBinLabel(bin, label);
+        ++bin;
+
         // h->SetFillStyle(kFillSolid);
         // h->SetMaximum(100.0); /* token maximum. reset later with real data */
         // h->FillRandom("gaus", 20000);
@@ -100,7 +116,6 @@ extern "C" {
 
         h->SetMarkerColor(kRed);
         h->SetMarkerStyle(kFullCircle);
-        // h->FillRandom("gaus", 10000);
 
         info->focus = new double [ n_focus ];
         info->focus_max = new double [ n_focus ];
@@ -111,8 +126,6 @@ extern "C" {
         }
 
         TCanvas *c = info->canvas;
-
-//        c->cd();
 
         info->focus_hist_max->Draw();
         info->focus_hist_max->Draw("same p");
@@ -144,30 +157,14 @@ extern "C" {
             if (f > info->focus_max[i]) {
                 info->focus_max[i] = f;
             }
-            printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
+            // printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
         }
-#if 0
-        info->focus[i++] = focus_img;
-        info->focus[i++] = focus_roi;
-#endif
 
         int bin = 1;
         for (i = 0; i < info->n_focus; ++i, ++bin) {
             info->focus_hist->SetBinContent(bin, info->focus[i]);
             info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
         }
-
-#if 0
-        info->focus_hist->SetBinContent(bin, info->focus[i]);
-        info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
-        ++i;
-        ++bin;
-
-        info->focus_hist->SetBinContent(bin, info->focus[i]);
-        info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
-        ++i;
-        ++bin;
-#endif
 
         info->new_data_semaphore = 1;
         return 0;
