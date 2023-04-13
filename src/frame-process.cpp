@@ -1,5 +1,7 @@
 #include <linux/videodev2.h>
 #include <pthread.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui.hpp"
@@ -24,7 +26,7 @@ void ImageProcessStack::process_image(void *data, unsigned int size) {
     // mat_back = cv::Mat(1440, 1280, data);
 }
 
-ImageProcessStack *stack;
+static ImageProcessStack *stack;
 
 extern "C" {
 
@@ -48,7 +50,12 @@ extern "C" {
         }
         else if (event == cv::EVENT_MBUTTONDOWN)
         {
-            //        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+            if (params->mid_click == 0) {
+                params->mid_click_x = x;
+                params->mid_click_y = y;
+                params->mid_click = 1;
+            }
+            printf("middle button clicked\n");
         }
         else if (event == cv::EVENT_MOUSEMOVE)
         {
@@ -56,8 +63,6 @@ extern "C" {
                 params->pt2.x = x;
                 params->pt2.y = y;
             }
-
-            //        fprintf(stderr, "mouse move at (%d, %d) with flags = %x\n", x, y, flags);
         }
     }
 
@@ -94,6 +99,20 @@ extern "C" {
         tv.tv_usec = microseconds - 1000000ULL * tv.tv_sec;
         select(1, NULL, NULL, NULL, &tv);
         return 0;
+    }
+
+    int save_file(cv::Mat &mat, const char *filename) {
+        size_t size = mat.rows * mat.cols;
+        int fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, S_IWUSR | S_IRUSR);
+        size_t rem = size;
+        uint8_t *p = mat.data;
+        while (rem) {
+            size_t n = write(fd, p, rem);
+            rem = rem - n;
+            p = p + n;
+        }
+        close(fd);
+        printf("saving file %s with %d bytes\n", filename, size);
     }
 
     void *image_process_looper(void *arg)
@@ -133,6 +152,14 @@ extern "C" {
             stack->focus_measure_img = focus(mat);
             stack->focus_measure[index++] = stack->focus_measure_img;
 
+            if (stack->frame_window_params.mid_click) {
+                char filename[256];
+                ++stack->filename_cntr;
+                snprintf(filename, sizeof (filename), "%s-%d.raw", stack->filename_base, stack->filename_cntr);
+                save_file(mat, filename);
+                stack->frame_window_params.mid_click = 0;
+            }
+
             cv::Point pt1(stack->frame_window_params.pt1.x, stack->frame_window_params.pt1.y);
             cv::Point pt2(stack->frame_window_params.pt2.x, stack->frame_window_params.pt2.y);
             cv::Scalar color(0, 255, 0);
@@ -171,7 +198,7 @@ extern "C" {
         delete [] stack->buff;
     }
 
-    int image_process_stack_initialize(v4l_client *client)
+    int image_process_stack_initialize(v4l_client *client, const char *filename_base)
     {
         unsigned int rows = client->rows;
         unsigned int cols = client->cols;
@@ -221,6 +248,9 @@ extern "C" {
 
         memset(&stack->frame_window_params, 0, sizeof (stack->frame_window_params));
         cv::setMouseCallback(stack->window_name, frame_mouse_callback, &stack->frame_window_params);
+
+        snprintf(stack->filename_base, sizeof (stack->filename_base), "%s", filename_base);
+        stack->filename_cntr = 0;
 
         stack->run = 1;
         int err = pthread_create(&stack->thread_id, 0, image_process_looper, stack);

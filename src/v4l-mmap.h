@@ -30,6 +30,7 @@ typedef struct {
     uint32_t pixel_format;
     int n_roi_x;
     int n_roi_y;
+    char filename_base[128];
 } v4l_client;
 
 #endif

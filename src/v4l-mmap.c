@@ -72,7 +72,7 @@ static int close_device(v4l_client *client);
 static int init_stack(v4l_client *client);
 static int close_stack(v4l_client *client);
 
-int image_process_stack_initialize(v4l_client *client);
+int image_process_stack_initialize(v4l_client *client, const char *filename_base); /* TODO move into include file */
 void image_process_stack_process_image(void const * const data, unsigned int size);
 
 static int delay_us(unsigned int microseconds)
@@ -555,7 +555,7 @@ static int uninit_device(v4l_client *client)
 
 static int init_stack(v4l_client *client)
 {
-    image_process_stack_initialize(client);
+    image_process_stack_initialize(client, client->filename_base);
     client->run = 0;
     client->thread_started = 0;
     int status = pthread_create(&client->thread_id, NULL, v4l_looper, client);
@@ -597,6 +597,8 @@ int main(int argc, char **argv)
             client.udp_data_port = atoi(argv[++i]);
             client.udp_ctrl_port = atoi(argv[++i]);
             client.udp_http_port = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-name") == 0) {
+            snprintf(client.filename_base, sizeof (client.filename_base), "%s", argv[++i]);
         }
     }
 
@@ -606,6 +608,7 @@ int main(int argc, char **argv)
     printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
     printf("roi: %d(H) x %d(V)\n", client.n_roi_x, client.n_roi_y);
+    printf("name: [%s]\n", client.filename_base);
 
     open_device(&client);
     init_device(&client);
@@ -641,21 +644,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-
-#if 0
-
-int main(int argc, char **argv)
-{
-    open_device();
-    init_device();
-    start_capturing();
-    mainloop();
-    stop_capturing();
-    uninit_device();
-    close_device();
-    fprintf(stderr, "\n");
-    return 0;
-}
-
-#endif

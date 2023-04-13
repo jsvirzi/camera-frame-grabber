@@ -9,6 +9,9 @@
 typedef struct {
     int roi_select_state;
     struct { int x, y; } pt1, pt2;
+    int mid_click_x;
+    int mid_click_y;
+    int mid_click;
 } FrameWindowParameters;
 
 class ImageProcessStack {
@@ -21,9 +24,9 @@ public:
     unsigned int cols;
     unsigned int pixel_format;
     const char *window_name;
-    uint8_t **buff;
+    uint8_t **buff; /* TODO */
     ssize_t buff_size;
-    uint8_t **roi_buff;
+    uint8_t **roi_buff; /* TODO */
     unsigned int roi_stride_x;
     unsigned int roi_stride_y;
     unsigned int roi_buff_size;
@@ -33,8 +36,6 @@ public:
     unsigned int run;
     unsigned int n_roi_x;
     unsigned int n_roi_y;
-    // unsigned int roi_x[N_ROI];
-    // unsigned int roi_y[N_ROI];
     unsigned int *roi_buff_index;
     uint8_t *roi_index;
     pthread_t thread_id;
@@ -42,6 +43,8 @@ public:
     double focus_measure_img;
     double focus_measure_roi;
     FrameWindowParameters frame_window_params;
+    char filename_base[128];
+    unsigned int filename_cntr;
 };
 
 #endif
