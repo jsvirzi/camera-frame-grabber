@@ -38,7 +38,7 @@ extern "C" {
             params->pt2.x = x;
             params->pt2.y = y;
             params->roi_select_state = 0;
-            fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
+            // fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
         }
         else if (event == cv::EVENT_RBUTTONDOWN)
         {
@@ -74,15 +74,14 @@ extern "C" {
         int depth = CV_16S;
 
         GaussianBlur( src, src, cv::Size(3,3), 0, 0, cv::BORDER_DEFAULT );
-//        cvtColor( src, src_gray, cv::COLOR_RGB2GRAY );
         src_gray = src;
         cv::Mat abs_dst;
-        // Laplacian( src_gray, dst, ddepth, kernel_size, scale, delta, cv::BORDER_DEFAULT );
+        // cv::Laplacian( src_gray, dst, ddepth, kernel_size, scale, delta, cv::BORDER_DEFAULT );
         cv::Laplacian(src_gray, dst, CV_64F);
         cv::Scalar mu, sigma;
         cv::meanStdDev(dst, mu, sigma);
 
-        cv::imshow("laplace", dst);
+        // cv::imshow("laplace", dst);
 
         double focusMeasure = sigma.val[0] * sigma.val[0];
         return focusMeasure;
@@ -120,13 +119,13 @@ extern "C" {
             for (int y = 0; y < stack->rows; y += stack->roi_stride_y) {
                 for (int x = 0; x < stack->cols; x += stack->roi_stride_x) {
                     cv::Rect grid_rect(x, y, stack->roi_stride_x, stack->roi_stride_y);
-                    std::cout << grid_rect<< std::endl;
+                    // std::cout << grid_rect<< std::endl;
                     mCells.push_back(grid_rect);
                     rectangle(mat, grid_rect, cv::Scalar(0, 255, 0), 1);
                     cv::Mat roi(mat, grid_rect);
                     // imshow(cv::format("grid-%d-%d", x, y), roi);
                     stack->focus_measure[index] = focus(roi);
-                    printf("focus(%d,%d) = %f/%d\n", y, x, stack->focus_measure[index], index);
+                    // printf("focus(%d,%d) = %f/%d\n", y, x, stack->focus_measure[index], index);
                     ++index;
                 }
             }
@@ -155,11 +154,6 @@ extern "C" {
                 stack->focus_measure_roi = focus(roi);
                 stack->focus_measure[index++] = stack->focus_measure_roi;
                 // imshow("roi", roi);
-            }
-
-            printf("===================TODO index = %d/%d\n", index, stack->n_roi_x * stack->n_roi_y + 2); /* TODO */
-            for (int i = 0; i < index; ++i) {
-                printf("==============TODO focus = %f\n", stack->focus_measure[i]);
             }
 
             cv::imshow(stack->window_name, mat);
@@ -213,6 +207,7 @@ extern "C" {
         unsigned int n_roi = stack->n_roi_x * stack->n_roi_y;
         stack->roi_buff = new uint8_t * [n_roi];
         stack->roi_buff_size = stack->roi_stride_x * stack->roi_stride_y;
+
         stack->roi_buff_index = new unsigned int [n_roi];
         int k = 0;
         for (int i = 0; i < stack->n_roi_x; ++i) {
@@ -236,9 +231,7 @@ extern "C" {
     {
         static int counter = 0;
         ++counter;
-        if ((counter % 10) == 0) {
-            printf("image size = %d\n", size);
-        }
+        // if ((counter % 10) == 0) { printf("image size = %d\n", size); }
 
         uint8_t *img_data = (uint8_t *) data;
         unsigned int new_head = (stack->buff_head + 1) & stack->buff_mask;
@@ -270,13 +263,6 @@ extern "C" {
             }
             stack->buff_head = new_head;
         }
-
-#if 0
-        uint8_t *buff = (uint8_t *) data;
-        cv::Mat mat(stack->rows, stack->cols, CV_8U, buff);
-#endif
-
-        // cv::Mat mat(stack->rows, stack->cols, CV_8U, (uint8_t *) data);
     }
 
 }

@@ -623,7 +623,7 @@ int main(int argc, char **argv)
 
     unsigned int last_report = client.frame_number;
     while (client.run) {
-        if ((client.frame_number % 10) == 0) {
+        if ((client.frame_number % 100) == 0) {
             if (client.frame_number != last_report) {
                 fprintf(stdout, "%d frames\n", client.frame_number);
                 last_report = client.frame_number;

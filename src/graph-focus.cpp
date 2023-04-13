@@ -101,16 +101,12 @@ extern "C" {
             snprintf(label, sizeof (label), "ROI-%d", bin);
             axis->SetBinLabel(bin, label);
         }
-        snprintf(label, sizeof (label), "IMG", bin);
+        snprintf(label, sizeof (label), "IMG");
         axis->SetBinLabel(bin, label);
         ++bin;
-        snprintf(label, sizeof (label), "ROI", bin);
+        snprintf(label, sizeof (label), "ROI");
         axis->SetBinLabel(bin, label);
         ++bin;
-
-        // h->SetFillStyle(kFillSolid);
-        // h->SetMaximum(100.0); /* token maximum. reset later with real data */
-        // h->FillRandom("gaus", 20000);
 
         h = info->focus_hist;
 
@@ -145,7 +141,7 @@ extern "C" {
     {
         FocusGraphInfo *info = &focus_graph_info;
 
-        printf("display_focus_graph(semaphore=%d, n=%d)\n", info->new_data_semaphore, info->n_focus);
+        // printf("display_focus_graph(semaphore=%d, n=%d)\n", info->new_data_semaphore, info->n_focus);
         if (info->new_data_semaphore == 1) {
             return 1;
         }
