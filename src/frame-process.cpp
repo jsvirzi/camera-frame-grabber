@@ -40,6 +40,7 @@ extern "C" {
             params->pt2.x = x;
             params->pt2.y = y;
             params->roi_select_state = 0;
+            params->l_click = 1;
             // fprintf(stderr, "left click at (%d, %d) with flags = %x\n", x, y, flags);
         }
         else if (event == cv::EVENT_RBUTTONDOWN)
@@ -47,6 +48,7 @@ extern "C" {
             params->pt1.x = x;
             params->pt1.y = y;
             params->roi_select_state = 1;
+            params->r_click = 1;
         }
         else if (event == cv::EVENT_MBUTTONDOWN)
         {
@@ -173,7 +175,7 @@ extern "C" {
             int len_x = max_x - min_x;
             int len_y = max_y - min_y;
 
-            int roi_good = (max_x > 0) && (max_y > 0) && (len_x > 0) && (len_y > 0);
+            int roi_good = (max_x > 0) && (max_y > 0) && (len_x > 0) && (len_y > 0) && stack->frame_window_params.l_click && stack->frame_window_params.r_click;
 
             if (roi_good) {
                 cv::Rect roi_rect(min_x, min_y, len_x, len_y);

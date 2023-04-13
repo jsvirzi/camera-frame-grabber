@@ -12,6 +12,8 @@ typedef struct {
     int mid_click_x;
     int mid_click_y;
     int mid_click;
+    int l_click;
+    int r_click;
 } FrameWindowParameters;
 
 class ImageProcessStack {
