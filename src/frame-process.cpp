@@ -112,7 +112,7 @@ extern "C" {
             p = p + n;
         }
         close(fd);
-        printf("saving file %s with %d bytes\n", filename, size);
+        printf("saving file %s with %zd bytes\n", filename, size);
     }
 
     void *image_process_looper(void *arg)
