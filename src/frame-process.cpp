@@ -7,6 +7,10 @@
 
 #include "frame-process.hpp"
 
+extern "C" {
+#include "graph-focus.h"
+}
+
 ImageProcessStack::ImageProcessStack() {
     //    mat_head = 0;
     //    mat_tail = 0;
@@ -152,6 +156,8 @@ extern "C" {
             }
 
             cv::imshow(stack->window_name, mat);
+
+            display_focus_graph(stack->focus_measure, stack->focus_measure_img, stack->focus_measure_roi);
 
             if(cv::waitKey(100) >= 0) { ; }
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;

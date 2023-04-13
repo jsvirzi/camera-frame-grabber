@@ -14,6 +14,16 @@
 
 extern "C" {
 
+    /* TODO this has multiple definitions */
+    static int delay_us(unsigned int microseconds)
+    {
+        struct timeval tv;
+        tv.tv_sec = microseconds / 1000000ULL;
+        tv.tv_usec = microseconds - 1000000ULL * tv.tv_sec;
+        select(1, NULL, NULL, NULL, &tv);
+        return 0;
+    }
+
     #include "graph-focus.h"
 
     typedef struct {
@@ -27,6 +37,8 @@ extern "C" {
         pthread_t thread_id;
         int run;
         pthread_t thread_id_app;
+        int new_data_semaphore;
+        unsigned int graph_looper_pace;
     } FocusGraphInfo;
 
     static FocusGraphInfo focus_graph_info;
@@ -41,9 +53,9 @@ extern "C" {
     {
         FocusGraphInfo *info = (FocusGraphInfo *) arg;
         while (info->run) {
-            sleep(1);
 
-            info->focus_hist_max->FillRandom("gaus", 10000);
+            delay_us(info->graph_looper_pace);
+            if (info->new_data_semaphore == 0) { continue; }
 
             TCanvas *c = info->canvas;
 
@@ -57,6 +69,7 @@ extern "C" {
             c->Update();
             c->Draw();
 
+            info->new_data_semaphore = 1;
         }
     }
 
@@ -64,6 +77,8 @@ extern "C" {
     {
         FocusGraphInfo *info = &focus_graph_info;
         memset(&focus_graph_info, 0, sizeof (focus_graph_info));
+
+        info->graph_looper_pace = 100; /* 100us looper pace */
 
         info->app = new TApplication("app", NULL, NULL);
 
@@ -79,13 +94,13 @@ extern "C" {
         h->SetFillColor(kYellow);
         // h->SetFillStyle(kFillSolid);
         // h->SetMaximum(100.0); /* token maximum. reset later with real data */
-        h->FillRandom("gaus", 20000);
+        // h->FillRandom("gaus", 20000);
 
         h = info->focus_hist;
 
         h->SetMarkerColor(kRed);
         h->SetMarkerStyle(kFullCircle);
-        h->FillRandom("gaus", 10000);
+        // h->FillRandom("gaus", 10000);
 
         info->focus = new double [ n_focus ];
         info->focus_max = new double [ n_focus ];
@@ -113,9 +128,44 @@ extern "C" {
 
     }
 
-    int display_focus_graph(double *focus)
+    int display_focus_graph(double *focus, double focus_img, double focus_roi)
     {
+        FocusGraphInfo *info = &focus_graph_info;
+        memset(&focus_graph_info, 0, sizeof (focus_graph_info));
 
+        if (info->new_data_semaphore) {
+            return 1;
+        }
+
+        int i;
+        for (i = 0; i < info->n_focus; ++i) {
+            double f = focus[i];
+            info->focus[i] = f;
+            if (f > info->focus_max[i]) {
+                info->focus_max[i] = f;
+            }
+        }
+        info->focus[i] = focus_img;
+        info->focus[i] = focus_roi;
+
+        int bin = 1;
+        for (i = 0; i < info->n_focus; ++i, ++bin) {
+            info->focus_hist->SetBinContent(bin, info->focus[i]);
+            info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
+        }
+
+        info->focus_hist->SetBinContent(bin, info->focus[i]);
+        info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
+        ++i;
+        ++bin;
+
+        info->focus_hist->SetBinContent(bin, info->focus[i]);
+        info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
+        ++i;
+        ++bin;
+
+        info->new_data_semaphore = 1;
+        return 0;
     }
 
 }
