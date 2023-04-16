@@ -29,15 +29,20 @@ extern "C" {
     typedef struct {
         TH1D *focus_hist;
         TH1D *focus_hist_max;
+        TH1D *focus_hist_rel;
+        TH1D *focus_hist_rel_max;
         double *focus;
         double *focus_max;
         int n_focus;
         TApplication *app;
         TCanvas *canvas;
+        TPad *pad_data;
+        TPad *pad_diff;
         pthread_t thread_id;
         int run;
         pthread_t thread_id_app;
         int new_data_semaphore;
+        int display_semaphore;
         unsigned int graph_looper_pace;
     } FocusGraphInfo;
 
@@ -68,6 +73,8 @@ extern "C" {
             c->Modified();
             c->Update();
             c->Draw();
+
+            info->display_semaphore = 0;
 
             info->new_data_semaphore = 0;
         }
@@ -141,6 +148,10 @@ extern "C" {
     {
         FocusGraphInfo *info = &focus_graph_info;
 
+        if (info->display_semaphore == 1) {
+            // return 1;
+        }
+
         // printf("display_focus_graph(semaphore=%d, n=%d)\n", info->new_data_semaphore, info->n_focus);
         if (info->new_data_semaphore == 1) {
             return 1;
@@ -153,7 +164,10 @@ extern "C" {
             if (f > info->focus_max[i]) {
                 info->focus_max[i] = f;
             }
-            // printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
+
+            if ((f < 1.0) && i < (info->n_focus - 1)) {
+                printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
+            }
         }
 
         int bin = 1;
@@ -167,4 +181,3 @@ extern "C" {
     }
 
 }
-

@@ -122,7 +122,7 @@ extern "C" {
         ImageProcessStack *stack = (ImageProcessStack *) arg;
         while (stack->run) {
             if (stack->buff_head == stack->buff_tail) { delay_us(1000); }
-            unsigned int index = (stack->buff_head - 1) & stack->buff_mask;
+            unsigned int index = (stack->buff_head - 1) & stack->buff_mask; /* most recent */
             cv::Mat mat(stack->rows, stack->cols, CV_8U, stack->buff[index]);
             for (int y = 0; y < stack->rows; y += stack->roi_stride_y) {
                 cv::Point pt1(0, y);
@@ -135,7 +135,7 @@ extern "C" {
                 cv::line(mat, pt1, pt2, (0, 255, 0), 2);
             }
 
-            std::vector<cv::Rect> mCells;
+            std::vector<cv::Rect> mCells; /* TODO what does presence do, other than keep elements alive after focus loss in next loop? */
             index = 0;
             for (int y = 0; y < stack->rows; y += stack->roi_stride_y) {
                 for (int x = 0; x < stack->cols; x += stack->roi_stride_x) {
@@ -267,7 +267,7 @@ extern "C" {
 
         uint8_t *img_data = (uint8_t *) data;
         unsigned int new_head = (stack->buff_head + 1) & stack->buff_mask;
-        if (new_head == stack->buff_tail) { return; }
+        if (new_head == stack->buff_tail) { return; } /* prevent buffer wrap while other agent could be using it */
         uint8_t *buff = stack->buff[stack->buff_head];
         unsigned int index = 0;
         if (stack->pixel_format == V4L2_PIX_FMT_YUYV) {
@@ -291,6 +291,19 @@ extern "C" {
                 for (int j = 0; j < stack->cols; ++j) {
                     uint8_t y = *p++;
                     buff[index++] = y;
+                }
+            }
+            stack->buff_head = new_head;
+        } else if (stack->pixel_format == V4L2_PIX_FMT_UYVY) { /* uyvy 422 format */
+            for (int i = 0; i < stack->rows; ++i) {
+                uint8_t *p = (uint8_t *) &img_data[i * stack->cols * 2];
+                for (int j = 0; j < stack->cols; j += 2) {
+                    uint8_t ux = *p++;
+                    uint8_t y0 = *p++;
+                    uint8_t vx = *p++;
+                    uint8_t y1 = *p++;
+                    buff[index++] = y0;
+                    buff[index++] = y1;
                 }
             }
             stack->buff_head = new_head;

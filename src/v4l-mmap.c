@@ -589,6 +589,12 @@ int main(int argc, char **argv)
         } else if (strcmp(argv[i], "-roi") == 0) {
             client.n_roi_x = atoi(argv[++i]);
             client.n_roi_y = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-yuyv") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_YUYV;
+        } else if (strcmp(argv[i], "-uyvy") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_UYVY;
+        } else if (strcmp(argv[i], "-grey") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_GREY;
         } else if (strcmp(argv[i], "-fmt") == 0) {
             sscanf(argv[++i], "%x", &client.pixel_format);
         } else if (strcmp(argv[i], "-d") == 0) {
@@ -604,8 +610,11 @@ int main(int argc, char **argv)
 
     initialize_focus_graph(client.n_roi_x * client.n_roi_y + 2);
 
+    printf("supported formats:\n");
+    printf("uyvy = 0x%8.8x\n", V4L2_PIX_FMT_UYVY);
     printf("yuyv = 0x%8.8x\n", V4L2_PIX_FMT_YUYV);
     printf("grey = 0x%8.8x\n", V4L2_PIX_FMT_GREY);
+    printf("\n");
     printf("pixel: (cols x rows) = (%d x %d). format = %x", client.cols, client.rows, client.pixel_format);
     printf("roi: %d(H) x %d(V)\n", client.n_roi_x, client.n_roi_y);
     printf("name: [%s]\n", client.filename_base);
