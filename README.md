@@ -30,10 +30,22 @@ Prerequisite modules must be installed:
     make
     source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh
 
+### Prebuilt Binaries
+
+    cd /mnt/data/jsvirzi/utils
+    tar xzvf ~/Downloads/root-image-xavier-nx.tar.gz
+    source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh 
+    chmod +x /mnt/data/jsvirzi/utils/root/bin/root
+    chmod +x /mnt/data/jsvirzi/utils/root/bin/root-config
+    source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh
+
 ## Install OpenCV on Xavier NX
 
     unzip opencv.zip
     unzip opencv_contrib.zip
+    cd opencv-4.5.2
+    mkdir build
+    cd build
     cmake -DOPENCV_EXTRA_MODULES=/mnt/data/jsvirzi/utils/opencv_contrib-4.5.2/modules ..
 
 ## Usage
