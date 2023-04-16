@@ -34,3 +34,11 @@ Prerequisite modules must be installed:
     unzip opencv.zip
     unzip opencv_contrib.zip
     cmake -DOPENCV_EXTRA_MODULES=/mnt/data/jsvirzi/utils/opencv_contrib-4.5.2/modules ..
+
+## Usage
+
+### On generic linux machine with e-conSystem CU24G
+    v4l-mmap -d /dev/video2 -res 1920 1080 -fmt 56595559 -name <session-name>
+
+### On Xavier NX
+    v4l-mmap -d /dev/video3 -res 1600 1300 -fmt 59455247 -name <session-name>
