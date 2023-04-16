@@ -66,15 +66,15 @@ extern "C" {
 
             info->pad_data->cd();
 
-            info->focus_hist_max->Draw();
-            info->focus_hist_max->Draw("same p");
-            info->focus_hist->Draw("same p");
+            info->focus_hist_max->DrawCopy();
+            info->focus_hist_max->DrawCopy("same p");
+            info->focus_hist->DrawCopy("same p");
 
             info->pad_diff->cd();
 
-            info->focus_hist_rel_max->Draw();
-            info->focus_hist_rel_max->Draw("same p");
-            info->focus_hist_rel->Draw("same p");
+            info->focus_hist_rel_max->DrawCopy();
+            info->focus_hist_rel_max->DrawCopy("same p");
+            info->focus_hist_rel->DrawCopy("same p");
 
             TCanvas *c = info->canvas;
             c->Modified();
@@ -96,21 +96,20 @@ extern "C" {
 
         info->app = new TApplication("app", NULL, NULL);
 
-        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 1000, 600);
-        TCanvas *c = info->canvas;
-        double x_min = 0.03;
-        double x_max = 0.97;
-        info->pad_data = new TPad("data","FOCUS",x_min,0.42,x_max,0.98);
-        info->pad_diff = new TPad("diff","GOAL",x_min,0.02,x_max,0.38);
-        // info->pad_data->SetFillColor();
-        info->pad_diff->SetFillColor(38);
-        info->pad_data->Draw();
-        info->pad_diff->Draw();
+        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 800, 500);
+        double x_min = 0.02;
+        double x_max = 0.98;
 
+        info->pad_data = new TPad("data","FOCUS",x_min,0.42,x_max,0.98);
         info->focus_hist = new TH1D("focus-hist", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->focus_hist_max = new TH1D("focus-hist-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
+        // info->pad_diff->SetFillColor(38);
+        info->pad_data->Draw();
+
+        info->pad_diff = new TPad("diff","GOAL",x_min,0.02,x_max,0.38);
         info->focus_hist_rel = new TH1D("focus-hist-rel", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->focus_hist_rel_max = new TH1D("focus-hist-rel-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
+        info->pad_diff->Draw();
 
         TH1D *h = info->focus_hist_max;
         h->SetMarkerColor(kBlue);
@@ -122,6 +121,7 @@ extern "C" {
         h->SetMarkerColor(kBlue);
         h->SetMarkerStyle(kOpenCircle);
         h->SetFillColor(kYellow);
+        h->SetTitle("");
         h->SetStats(kFALSE);
         h->SetMinimum(-0.1);
         h->SetMaximum(2.1);
@@ -201,9 +201,7 @@ extern "C" {
                 info->focus_max[i] = f;
             }
 
-            if ((f < 1.0) && i < (info->n_focus - 1)) {
-                printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]);
-            }
+            // if ((f < 1.0) && i < (info->n_focus - 1)) { printf("display() : %d %f %f\n", i, info->focus[i], info->focus_max[i]); }
         }
 
         int bin = 1;

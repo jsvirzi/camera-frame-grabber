@@ -9,11 +9,12 @@
 typedef struct {
     int roi_select_state;
     struct { int x, y; } pt1, pt2;
-    int mid_click_x;
-    int mid_click_y;
-    int mid_click;
+    int m_click_x;
+    int m_click_y;
+    int m_click;
     int l_click;
     int r_click;
+    int save_hist;
 } FrameWindowParameters;
 
 class ImageProcessStack {

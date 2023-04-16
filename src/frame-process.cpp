@@ -52,10 +52,10 @@ extern "C" {
         }
         else if (event == cv::EVENT_MBUTTONDOWN)
         {
-            if (params->mid_click == 0) {
-                params->mid_click_x = x;
-                params->mid_click_y = y;
-                params->mid_click = 1;
+            if (params->m_click == 0) {
+                params->m_click_x = x;
+                params->m_click_y = y;
+                params->m_click = 1;
             }
             printf("middle button clicked\n");
         }
@@ -154,12 +154,16 @@ extern "C" {
             stack->focus_measure_img = focus(mat);
             stack->focus_measure[index++] = stack->focus_measure_img;
 
-            if (stack->frame_window_params.mid_click) {
-                char filename[256];
+            char stats_filename[256];
+            stats_filename[0] = 0;
+
+            if (stack->frame_window_params.m_click) {
+                char image_filename[256];
                 ++stack->filename_cntr;
-                snprintf(filename, sizeof (filename), "%s-%d.raw", stack->filename_base, stack->filename_cntr);
-                save_file(mat, filename);
-                stack->frame_window_params.mid_click = 0;
+                snprintf(image_filename, sizeof (image_filename), "%s-%d-image.raw", stack->filename_base, stack->filename_cntr);
+                snprintf(stats_filename, sizeof (stats_filename), "%s-%d-stats.pdf", stack->filename_base, stack->filename_cntr);
+                save_file(mat, image_filename);
+                stack->frame_window_params.m_click = 0;
             }
 
             cv::Point pt1(stack->frame_window_params.pt1.x, stack->frame_window_params.pt1.y);
@@ -185,7 +189,7 @@ extern "C" {
                 // imshow("roi", roi);
             }
 
-            printf("cv::imshow(%s)\n", stack->window_name);
+            // printf("cv::imshow(%s)\n", stack->window_name);
             cv::imshow(stack->window_name, mat);
 
             display_focus_graph(stack->focus_measure);
