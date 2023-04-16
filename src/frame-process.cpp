@@ -185,11 +185,12 @@ extern "C" {
                 // imshow("roi", roi);
             }
 
+            printf("cv::imshow(%s)\n", stack->window_name);
             cv::imshow(stack->window_name, mat);
 
             display_focus_graph(stack->focus_measure);
 
-            if(cv::waitKey(100) >= 0) { ; }
+            if(cv::waitKey(25) >= 0) { ; } /* TODO? */
             stack->buff_tail = (stack->buff_tail + 1) & stack->buff_mask;
         }
     }
@@ -263,7 +264,7 @@ extern "C" {
     {
         static int counter = 0;
         ++counter;
-        // if ((counter % 10) == 0) { printf("image size = %d\n", size); }
+        if ((counter % 10) == 0) { printf("image size = %d\n", size); }
 
         uint8_t *img_data = (uint8_t *) data;
         unsigned int new_head = (stack->buff_head + 1) & stack->buff_mask;
