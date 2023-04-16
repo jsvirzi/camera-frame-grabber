@@ -62,14 +62,21 @@ extern "C" {
             delay_us(info->graph_looper_pace);
             if (info->new_data_semaphore == 0) { continue; }
 
-            TCanvas *c = info->canvas;
+            info->display_semaphore = 1; /* display is busy */
 
-            c->cd();
+            info->pad_data->cd();
 
             info->focus_hist_max->Draw();
             info->focus_hist_max->Draw("same p");
             info->focus_hist->Draw("same p");
 
+            info->pad_diff->cd();
+
+            info->focus_hist_rel_max->Draw();
+            info->focus_hist_rel_max->Draw("same p");
+            info->focus_hist_rel->Draw("same p");
+
+            TCanvas *c = info->canvas;
             c->Modified();
             c->Update();
             c->Draw();
@@ -89,20 +96,39 @@ extern "C" {
 
         info->app = new TApplication("app", NULL, NULL);
 
-        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 800, 600);
+        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 1000, 600);
+        TCanvas *c = info->canvas;
+        double x_min = 0.03;
+        double x_max = 0.97;
+        info->pad_data = new TPad("data","FOCUS",x_min,0.42,x_max,0.98);
+        info->pad_diff = new TPad("diff","GOAL",x_min,0.02,x_max,0.38);
+        // info->pad_data->SetFillColor();
+        info->pad_diff->SetFillColor(38);
+        info->pad_data->Draw();
+        info->pad_diff->Draw();
 
         info->focus_hist = new TH1D("focus-hist", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->focus_hist_max = new TH1D("focus-hist-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
+        info->focus_hist_rel = new TH1D("focus-hist-rel", "FOCUS", n_focus, -0.5, n_focus + 0.5);
+        info->focus_hist_rel_max = new TH1D("focus-hist-rel-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
 
         TH1D *h = info->focus_hist_max;
-
         h->SetMarkerColor(kBlue);
         h->SetMarkerStyle(kOpenCircle);
         h->SetFillColor(kYellow);
         h->SetStats(kFALSE);
 
+        h = info->focus_hist_rel_max;
+        h->SetMarkerColor(kBlue);
+        h->SetMarkerStyle(kOpenCircle);
+        h->SetFillColor(kYellow);
+        h->SetStats(kFALSE);
+        h->SetMinimum(-0.1);
+        h->SetMaximum(2.1);
+
         char label[32];
         int bin;
+        h = info->focus_hist_max;
         TAxis *axis = h->GetXaxis();
         for (bin = 1; bin <= (n_focus - 2); ++bin) {
             snprintf(label, sizeof (label), "ROI-%d", bin);
@@ -116,7 +142,10 @@ extern "C" {
         ++bin;
 
         h = info->focus_hist;
+        h->SetMarkerColor(kRed);
+        h->SetMarkerStyle(kFullCircle);
 
+        h = info->focus_hist_rel;
         h->SetMarkerColor(kRed);
         h->SetMarkerStyle(kFullCircle);
 
@@ -128,15 +157,22 @@ extern "C" {
             info->focus[i] = 0.0;
         }
 
-        TCanvas *c = info->canvas;
-
+#if 0
+        info->pad_data->cd();
         info->focus_hist_max->Draw();
         info->focus_hist_max->Draw("same p");
         info->focus_hist->Draw("same p");
 
+        info->pad_data->cd();
+        info->focus_hist_rel->Draw();
+        info->focus_hist_rel->Draw("same p");
+#endif
+
+#if 0
         c->Modified();
         c->Update();
         c->Draw();
+#endif
 
         info->run = 1;
         pthread_create(&info->thread_id_app, NULL, graph_focus_app_looper, info);
@@ -172,8 +208,11 @@ extern "C" {
 
         int bin = 1;
         for (i = 0; i < info->n_focus; ++i, ++bin) {
+            double a = (info->focus_max[i] > 0) ? (info->focus[i] / info->focus_max[i]) : 0.0;
             info->focus_hist->SetBinContent(bin, info->focus[i]);
             info->focus_hist_max->SetBinContent(bin, info->focus_max[i]);
+            info->focus_hist_rel->SetBinContent(bin, a);
+            info->focus_hist_rel_max->SetBinContent(bin, 1.0);
         }
 
         info->new_data_semaphore = 1;
