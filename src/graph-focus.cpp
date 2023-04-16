@@ -96,17 +96,17 @@ extern "C" {
 
         info->app = new TApplication("app", NULL, NULL);
 
-        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 800, 500);
-        double x_min = 0.02;
-        double x_max = 0.98;
+        info->canvas = new TCanvas("c", "focus-analysis", 0, 0, 900, 500);
+        double x_min = 0.01;
+        double x_max = 0.99;
 
-        info->pad_data = new TPad("data","FOCUS",x_min,0.42,x_max,0.98);
+        info->pad_data = new TPad("data","FOCUS",x_min,0.41,x_max,0.98);
         info->focus_hist = new TH1D("focus-hist", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->focus_hist_max = new TH1D("focus-hist-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         // info->pad_diff->SetFillColor(38);
         info->pad_data->Draw();
 
-        info->pad_diff = new TPad("diff","GOAL",x_min,0.02,x_max,0.38);
+        info->pad_diff = new TPad("diff","GOAL",x_min,0.02,x_max,0.39);
         info->focus_hist_rel = new TH1D("focus-hist-rel", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->focus_hist_rel_max = new TH1D("focus-hist-rel-max", "FOCUS", n_focus, -0.5, n_focus + 0.5);
         info->pad_diff->Draw();
@@ -116,6 +116,10 @@ extern "C" {
         h->SetMarkerStyle(kOpenCircle);
         h->SetFillColor(kYellow);
         h->SetStats(kFALSE);
+        h->GetYaxis()->CenterTitle(kTRUE);
+        h->GetYaxis()->SetTitle("Arbitrary Units");
+        h->GetYaxis()->SetTitleSize(0.05);
+        h->GetYaxis()->SetTitleOffset(0.5);
 
         h = info->focus_hist_rel_max;
         h->SetMarkerColor(kBlue);
@@ -125,11 +129,30 @@ extern "C" {
         h->SetStats(kFALSE);
         h->SetMinimum(-0.1);
         h->SetMaximum(2.1);
+        h->GetYaxis()->CenterTitle(kTRUE);
+        h->GetYaxis()->SetTitle("Relative Maximum");
+        h->GetYaxis()->SetTitleSize(0.08);
+        h->GetYaxis()->SetTitleOffset(0.25);
 
         char label[32];
         int bin;
         h = info->focus_hist_max;
-        TAxis *axis = h->GetXaxis();
+        TAxis *axis;
+
+        axis = h->GetXaxis();
+        for (bin = 1; bin <= (n_focus - 2); ++bin) {
+            snprintf(label, sizeof (label), "ROI-%d", bin);
+            axis->SetBinLabel(bin, label);
+        }
+        snprintf(label, sizeof (label), "IMG");
+        axis->SetBinLabel(bin, label);
+        ++bin;
+        snprintf(label, sizeof (label), "ROI");
+        axis->SetBinLabel(bin, label);
+        ++bin;
+
+        h = info->focus_hist_rel_max;
+        axis = h->GetXaxis();
         for (bin = 1; bin <= (n_focus - 2); ++bin) {
             snprintf(label, sizeof (label), "ROI-%d", bin);
             axis->SetBinLabel(bin, label);
