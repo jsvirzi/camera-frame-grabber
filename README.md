@@ -48,6 +48,33 @@ Prerequisite modules must be installed:
     cd build
     cmake -DOPENCV_EXTRA_MODULES=/mnt/data/jsvirzi/utils/opencv_contrib-4.5.2/modules ..
 
+## Install guvcview
+
+    sudo apt-get install intltool
+    sudo apt-get install libv4l-dev
+    sudo apt-get install libudev-dev
+    sudo apt-get install libavcodec-dev
+    sudo apt-get install libsdl2-dev
+    sudo apt-get install libgsl-dev
+    sudo apt-get install portaudio19-dev
+
+    cd guvcview-src-2.0.8
+    ./configure
+    make (-j4)
+    sudo make install
+    sudo ldconfig
+
+### GUVCVIEW -- problems with library resolution 
+From experience, when running guvcview, it has been unable to resolve library locations.
+If this happens, the following commands will help
+
+    # completely optional steps. use only if problems occur with guvcview
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_v4l2core/.libs
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_render/.libs
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_audio/.libs
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_encoder/.libs
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/guvcview/.libs
+
 ## Usage
 
 ### On generic linux machine with e-conSystem CU24G
