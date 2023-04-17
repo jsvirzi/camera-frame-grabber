@@ -34,19 +34,22 @@ Prerequisite modules must be installed:
 
     cd /mnt/data/jsvirzi/utils
     tar xzvf ~/Downloads/root-image-xavier-nx.tar.gz
-    source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh 
     chmod +x /mnt/data/jsvirzi/utils/root/bin/root
     chmod +x /mnt/data/jsvirzi/utils/root/bin/root-config
     source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh
+    echo "source /mnt/data/jsvirzi/utils/root/bin/thisroot.sh" >> ~/.bashrc 
 
 ## Install OpenCV on Xavier NX
 
+    cd /mnt/data/jsvirzi/utils
     unzip opencv.zip
     unzip opencv_contrib.zip
     cd opencv-4.5.2
     mkdir build
     cd build
     cmake -DOPENCV_EXTRA_MODULES=/mnt/data/jsvirzi/utils/opencv_contrib-4.5.2/modules ..
+    make
+    sudo make install
 
 ## Install guvcview
 
@@ -58,11 +61,15 @@ Prerequisite modules must be installed:
     sudo apt-get install libgsl-dev
     sudo apt-get install portaudio19-dev
 
+    tar xvf guvcview-src-2.0.8.tar.bz2
     cd guvcview-src-2.0.8
     ./configure
     make (-j4)
     sudo make install
     sudo ldconfig
+
+    DBUS_FATAL_WARNINGS=0 guvcview -d /dev/video3
+
 
 ### GUVCVIEW -- problems with library resolution 
 From experience, when running guvcview, it has been unable to resolve library locations.
