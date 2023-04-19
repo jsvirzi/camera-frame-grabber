@@ -9,16 +9,21 @@
     https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
     https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
 
+## Preparation for NX
+
+    mkdir -p /mnt/data/jsvirzi/projects
+    mkdir -p /mnt/data/jsvirzi/utils
+
 ## Install ROOT 5.34.38
 
 ### Binaries
 Prerequisite modules must be installed:
 
-    sudo apt-get install apt-utils
-    sudo apt-get install dpkg-dev cmake g++ gcc binutils 
-    sudo apt-get install libx11-dev libxpm-dev libxft-dev libxext-dev 
-    sudo apt-get install python libssl-dev 
-    sudo apt-get install libgtk2.0-dev libcanberra-gtk-module
+    sudo apt-get install -y apt-utils
+    sudo apt-get install -y dpkg-dev cmake g++ gcc binutils 
+    sudo apt-get install -y libx11-dev libxpm-dev libxft-dev libxext-dev 
+    sudo apt-get install -y python libssl-dev 
+    sudo apt-get install -y libgtk2.0-dev libcanberra-gtk-module
 
 ### Source Code
 
@@ -42,8 +47,8 @@ Prerequisite modules must be installed:
 ## Install OpenCV on Xavier NX
 
     cd /mnt/data/jsvirzi/utils
-    unzip opencv.zip
-    unzip opencv_contrib.zip
+    unzip ~/Downloads/opencv.zip
+    unzip ~/Downloads/opencv_contrib.zip
     cd opencv-4.5.2
     mkdir build
     cd build
@@ -53,18 +58,18 @@ Prerequisite modules must be installed:
 
 ## Install guvcview
 
-    sudo apt-get install intltool
-    sudo apt-get install libv4l-dev
-    sudo apt-get install libudev-dev
-    sudo apt-get install libavcodec-dev
-    sudo apt-get install libsdl2-dev
-    sudo apt-get install libgsl-dev
-    sudo apt-get install portaudio19-dev
+    sudo apt-get install -y intltool
+    sudo apt-get install -y libv4l-dev
+    sudo apt-get install -y libudev-dev
+    sudo apt-get install -y libavcodec-dev
+    sudo apt-get install -y libsdl2-dev
+    sudo apt-get install -y libgsl-dev
+    sudo apt-get install -y portaudio19-dev
 
-    tar xvf guvcview-src-2.0.8.tar.bz2
+    tar xvf ~/Downloads/guvcview-src-2.0.8.tar.bz2
     cd guvcview-src-2.0.8
     ./configure
-    make (-j4)
+    make
     sudo make install
     sudo ldconfig
 
@@ -82,10 +87,33 @@ If this happens, the following commands will help
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_encoder/.libs
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/guvcview/.libs
 
+##  Compile V4L Camera Frame Grabber + Utilities
+
+    mkdir -p /mnt/data/jsvirzi/projects
+    cd -p /mnt/data/jsvirzi/projects
+    git clone git@github.com:jsvirzi/camera-frame-grabber.git
+    cd camera-frame-grabber
+    mkdir -p build
+    cd build
+    cmake ..
+    make
+
 ## Usage
 
 ### On generic linux machine with e-conSystem CU24G
-    v4l-mmap -d /dev/video2 -res 1920 1080 -fmt 56595559 -name <session-name>
+    cd /mnt/data/jsvirzi/projects/camera-frame-grabber/build
+    ./v4l-mmap -d /dev/video2 -res 1920 1080 -fmt 56595559 -name <session-name>
 
 ### On Xavier NX
-    v4l-mmap -d /dev/video3 -res 1600 1300 -fmt 59455247 -name <session-name>
+
+#### LPR Day Camera
+    cd /mnt/data/jsvirzi/projects/camera-frame-grabber/build
+    ./v4l-mmap -d /dev/video3 -res 1600 1300 -fmt 59455247 -name <session-name>
+
+#### LPR Night Camera
+    cd /mnt/data/jsvirzi/projects/camera-frame-grabber/build
+    ./v4l-mmap -d /dev/videoX -res 1600 1300 -fmt 59455247 -name <session-name>
+
+#### Context Camera
+    cd /mnt/data/jsvirzi/projects/camera-frame-grabber/build
+    ./v4l-mmap -d /dev/video2 -res 1920 1080 -fmt 56595559 -name <session-name>
