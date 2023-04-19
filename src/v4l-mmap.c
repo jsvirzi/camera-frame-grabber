@@ -595,6 +595,18 @@ int main(int argc, char **argv)
             client.pixel_format = V4L2_PIX_FMT_UYVY;
         } else if (strcmp(argv[i], "-grey") == 0) {
             client.pixel_format = V4L2_PIX_FMT_GREY;
+        } else if (strcmp(argv[i], "-day") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_UYVY;
+            client.n_roi_x = 1600;
+            client.n_roi_y = 1300;
+        } else if (strcmp(argv[i], "-night") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_UYVY;
+            client.n_roi_x = 1600;
+            client.n_roi_y = 1300;
+        } else if (strcmp(argv[i], "-context") == 0) {
+            client.pixel_format = V4L2_PIX_FMT_UYVY;
+            client.n_roi_x = 1920;
+            client.n_roi_y = 1080;
         } else if (strcmp(argv[i], "-fmt") == 0) {
             sscanf(argv[++i], "%x", &client.pixel_format);
         } else if (strcmp(argv[i], "-d") == 0) {
