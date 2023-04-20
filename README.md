@@ -87,7 +87,7 @@ If this happens, the following commands will help
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/gview_encoder/.libs
     export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/mnt/data/jsvirzi/utils/guvcview-src-2.0.8/guvcview/.libs
 
-##  Compile V4L Camera Frame Grabber + Utilities
+##  Compile/Build V4L Camera Frame Grabber + Utilities
 
     mkdir -p /mnt/data/jsvirzi/projects
     cd -p /mnt/data/jsvirzi/projects
@@ -96,6 +96,12 @@ If this happens, the following commands will help
     mkdir -p build
     cd build
     cmake ..
+    make
+
+## Update source in existing repository
+
+    cd -p /mnt/data/jsvirzi/projects/camera-frame-grabber/build
+    git pull
     make
 
 ## Usage
