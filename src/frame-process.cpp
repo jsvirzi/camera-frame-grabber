@@ -303,10 +303,10 @@ extern "C" {
             for (int i = 0; i < stack->rows; ++i) {
                 uint8_t *p = (uint8_t *) &img_data[i * stack->cols * 2];
                 for (int j = 0; j < stack->cols; j += 2) {
-                    uint8_t ux = *p++;
                     uint8_t y0 = *p++;
-                    uint8_t vx = *p++;
+                    uint8_t ux = *p++;
                     uint8_t y1 = *p++;
+                    uint8_t vx = *p++;
                     buff[index++] = y0;
                     buff[index++] = y1;
                 }
