@@ -1,13 +1,29 @@
 # camera-frame-grabber
 
-## Download the following links
+## Download the following links into the Downloads directory
 
     https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb/view?usp=sharing
     https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV/view?usp=sharing
     https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ/view?usp=sharing
     https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb/view?usp=sharing
-    https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
+    # https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
     https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
+
+## Command Line using wget
+    cd ~/Downloads
+    wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb/view?usp=sharing
+    wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV/view?usp=sharing
+    wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ/view?usp=sharing
+    wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb/view?usp=sharing
+    # wget https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
+    wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
+
+    wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb
+    wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV
+    wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ
+    wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb
+    # wget https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
+    wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3
 
 ## Preparation for NX
 
@@ -28,7 +44,7 @@ Prerequisite modules must be installed:
 ### Source Code
 
     cd /mnt/data/jsvirzi/utils
-    tar xzvf root_v5.34.38.source.tar.gz
+    tar xzvf ~/Downloads/root_v5.34.38.source.tar.gz
     cd root
     ./configure (or next line)
     ./configure linuxarm64 --prefix=/usr/local --build=aarch64-unknown-linux-gnu
@@ -66,6 +82,7 @@ Prerequisite modules must be installed:
     sudo apt-get install -y libgsl-dev
     sudo apt-get install -y portaudio19-dev
 
+    cd /mnt/data/jsvirzi/utils
     tar xvf ~/Downloads/guvcview-src-2.0.8.tar.bz2
     cd guvcview-src-2.0.8
     ./configure
@@ -90,7 +107,7 @@ If this happens, the following commands will help
 ##  Compile/Build V4L Camera Frame Grabber + Utilities
 
     mkdir -p /mnt/data/jsvirzi/projects
-    cd -p /mnt/data/jsvirzi/projects
+    cd /mnt/data/jsvirzi/projects
     git clone git@github.com:jsvirzi/camera-frame-grabber.git
     cd camera-frame-grabber
     mkdir -p build
