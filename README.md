@@ -9,21 +9,53 @@
     # https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
     https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
 
-## Command Line using wget
+## Command Line using wget and/or curl
     cd ~/Downloads
-    wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb/view?usp=sharing
-    wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV/view?usp=sharing
-    wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ/view?usp=sharing
-    wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb/view?usp=sharing
-    # wget https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
-    wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
+    
+    # TODO this stopped working
+    # wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb/view?usp=sharing
+    # wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV/view?usp=sharing
+    # wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ/view?usp=sharing
+    # wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb/view?usp=sharing
+    # wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3/view?usp=sharing
 
-    wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb
-    wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV
-    wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ
-    wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb
-    # wget https://drive.google.com/drive/folders/1UdqkmWt-I_7NcyLrAxGH2Ll5svlGo-gV?usp=sharing
-    wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3
+    # TODO this stopped working
+    # wget -O root_v5.34.38.source.tar.gz https://drive.google.com/file/d/1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb
+    # wget -O opencv.zip https://drive.google.com/file/d/1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV
+    # wget -O opencv_contrib.zip https://drive.google.com/file/d/1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ
+    # wget -O guvcview-src-2.0.8.tar.bz2 https://drive.google.com/file/d/1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb
+    # wget -O root-image-xavier-nx.tar.gz https://drive.google.com/file/d/1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3
+
+### suggest to copy and paste into a bash script and execute
+
+    #!/bin/bash
+    
+    cd ~/Downloads
+    
+    fileid="1_jHPA54Ed0UzKlldly3K0BzjGQ7kuLZb"
+    filename="root_v5.34.38.source.tar.gz"
+    html=`curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}"`
+    curl -Lb ./cookie "https://drive.google.com/uc?export=download&`echo ${html}|grep -Po '(confirm=[a-zA-Z0-9\-_]+)'`&id=${fileid}" -o ${filename}
+
+    fileid="1mnUD_cEt008iRPZwFIXA2LE1A9ZPd_VV"
+    filename="opencv.zip"
+    html=`curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}"`
+    curl -Lb ./cookie "https://drive.google.com/uc?export=download&`echo ${html}|grep -Po '(confirm=[a-zA-Z0-9\-_]+)'`&id=${fileid}" -o ${filename}
+
+    fileid="1G2Y7eAVNNpMYOrbupcTYyPv1WPkhgjWZ"
+    filename="opencv_contrib.zip"
+    html=`curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}"`
+    curl -Lb ./cookie "https://drive.google.com/uc?export=download&`echo ${html}|grep -Po '(confirm=[a-zA-Z0-9\-_]+)'`&id=${fileid}" -o ${filename}
+
+    fileid="1zqd9J9PXQ1_axQxz5VPGznXi2e9bPqtb"
+    filename="guvcview-src-2.0.8.tar.bz2"
+    html=`curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}"`
+    curl -Lb ./cookie "https://drive.google.com/uc?export=download&`echo ${html}|grep -Po '(confirm=[a-zA-Z0-9\-_]+)'`&id=${fileid}" -o ${filename}
+
+    fileid="1YymOEJBrbkumLQ5XrP8r0VOTJq4FtcA3"
+    filename="root-image-xavier-nx.tar.gz"
+    html=`curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${fileid}"`
+    curl -Lb ./cookie "https://drive.google.com/uc?export=download&`echo ${html}|grep -Po '(confirm=[a-zA-Z0-9\-_]+)'`&id=${fileid}" -o ${filename}
 
 ## Preparation for NX
 
